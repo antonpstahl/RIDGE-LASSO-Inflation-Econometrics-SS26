@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# Virtuelle Umgebungen
+.venv/
+venv/
+env/
+
+# Hinweis: data/ und results/ werden bewusst versioniert
+# (Reproduzierbarkeit der Seminararbeit).
+
+
+*.pdf
+*.xlsx
+*.docx
