@@ -82,10 +82,3 @@ Datensatz: **254 Beobachtungen** (2002-01 – 2024-01), davon **218 Training / 3
 
 LASSO ist klar am besten und selektiert 29 von 165 Features. OLS überanpasst stark
 (hohes p/n-Verhältnis, Multikollinearität).
-
-## Nächste Schritte & offene Punkte
-
-Details in **[IMPLEMENTIERUNGSPLAN.md](IMPLEMENTIERUNGSPLAN.md)**. Kurz:
-- noch **kein naiver Benchmark** (AR / Random Walk) → Nützlichkeit der Modelle noch nicht belegt
-- Auswertung auf **einem** Testfenster → Rolling-Origin-Out-of-Sample geplant
-- kleinere **Leakage-Korrekturen** offen (Lohnkosten-Interpolation, NaN-Filter)
