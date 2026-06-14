@@ -14,7 +14,6 @@ und Variablenselektion in einer Situation mit vielen, stark kollinearen Prädikt
 ```
 RIDGE_LASSO_Inflation_Econometrics_SS26/
 ├── README.md                  Diese Datei
-├── IMPLEMENTIERUNGSPLAN.md     Geplante Verbesserungen + Schreibfahrplan
 ├── requirements.txt           Gepinnte Abhängigkeiten
 ├── notebooks/
 │   └── LASSO_Ridge_Inflationsprognose.ipynb   Eigenständige Hauptanalyse (mit Outputs)
@@ -83,10 +82,3 @@ Datensatz: **254 Beobachtungen** (2002-01 – 2024-01), davon **218 Training / 3
 
 LASSO ist klar am besten und selektiert 29 von 165 Features. OLS überanpasst stark
 (hohes p/n-Verhältnis, Multikollinearität).
-
-## Nächste Schritte & offene Punkte
-
-Details in **[IMPLEMENTIERUNGSPLAN.md](IMPLEMENTIERUNGSPLAN.md)**. Kurz:
-- noch **kein naiver Benchmark** (AR / Random Walk) → Nützlichkeit der Modelle noch nicht belegt
-- Auswertung auf **einem** Testfenster → Rolling-Origin-Out-of-Sample geplant
-- kleinere **Leakage-Korrekturen** offen (Lohnkosten-Interpolation, NaN-Filter)
