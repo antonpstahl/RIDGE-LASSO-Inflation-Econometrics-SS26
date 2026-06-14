@@ -12,7 +12,7 @@ und Variablenselektion in einer Situation mit vielen, stark kollinearen Prädikt
 ## Projektstruktur
 
 ```
-Implementation/
+RIDGE_LASSO_Inflation_Econometrics_SS26/
 ├── README.md                  Diese Datei
 ├── IMPLEMENTIERUNGSPLAN.md     Geplante Verbesserungen + Schreibfahrplan
 ├── requirements.txt           Gepinnte Abhängigkeiten
@@ -38,7 +38,13 @@ Implementation/
 | Zielvariable | ECB SDW | HVPI Deutschland `ICP/M.DE.N.000000.4.INX` |
 | Prädiktoren | Eurostat | Industrieproduktion, Business Surveys, Produzentenpreise, Arbeitslosigkeit, Lohnkostenindex |
 
-33 Reihen → **165 Features** mit Lags `[1, 2, 3, 6, 12]`.
+33 Prädiktor-Reihen → **165 Features** mit Lags `[1, 2, 3, 6, 12]` (Prognose-Horizont 1 Monat).
+
+> **Hinweis zum Stichprobenfenster:** Der Roh-Cache (`data/raw/data_raw.csv`) reicht
+> bis **2026-04**, die Modellierungsstichprobe endet jedoch bei **2024-01**. Grund: Die
+> Eurostat-Industrieproduktions- und Produzentenpreis-Reihen enden im verwendeten Cache
+> bei 2023-12; der >20 %-NaN-Filter und das abschließende `dropna` schneiden auf das
+> gemeinsame Fenster aller Reihen zu (Horizont +1 → letztes Ziel 2024-01).
 
 > **Hinweis zur Datenquelle:** Der ursprüngliche Vorgehensplan sah die Deutsche
 > Bundesbank (SDMX) vor. Deren API war aus der Arbeitsumgebung nicht erreichbar,
