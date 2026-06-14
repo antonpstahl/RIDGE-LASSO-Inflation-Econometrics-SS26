@@ -14,7 +14,6 @@ und Variablenselektion in einer Situation mit vielen, stark kollinearen Prädikt
 ```
 RIDGE_LASSO_Inflation_Econometrics_SS26/
 ├── README.md                  Diese Datei
-├── IMPLEMENTIERUNGSPLAN.md     Geplante Verbesserungen + Schreibfahrplan
 ├── requirements.txt           Gepinnte Abhängigkeiten
 ├── notebooks/
 │   └── LASSO_Ridge_Inflationsprognose.ipynb   Eigenständige Hauptanalyse (mit Outputs)
