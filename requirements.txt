@@ -1,0 +1,14 @@
+# Kernmethodik & Datenverarbeitung (gepinnt auf die getestete Umgebung, Python 3.13)
+numpy==2.4.1
+pandas==3.0.2
+scikit-learn==1.8.0
+matplotlib==3.10.8
+seaborn==0.13.2
+requests==2.32.5
+
+# Notebook-Toolchain
+nbformat==5.10.4
+jupyter>=1.0
+
+# Optional – wird erst durch geplante Erweiterungen benötigt (AR-Benchmark, Diebold-Mariano)
+# statsmodels==0.14.4
