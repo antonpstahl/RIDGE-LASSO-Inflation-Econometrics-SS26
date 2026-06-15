@@ -9,7 +9,7 @@ Prognose der deutschen HVPI-Inflationsrate aus makroökonomischen Indikatoren mi
 
 **Forschungsfrage:** Schlagen makroökonomische Prädiktoren mit Ridge/LASSO die reine
 Inflationspersistenz (Random Walk)?
-**Kernbefund:** Regularisierung behebt das massive Overfitting von OLS (Test-R² −1,41 → 0,75),
+**Kernbefund:** Regularisierung behebt das massive Overfitting von OLS (Test-R² −0,40 → 0,74),
 **schlägt den Random Walk aber nicht** — der Makro-Mehrwert über die Persistenz hinaus ist
 nahe null. Die Analyse demonstriert damit Regularisierung und Variablenselektion bei vielen,
 stark kollinearen Prädiktoren *und* ordnet ihren Prognosewert ehrlich gegen den naiven
@@ -44,7 +44,7 @@ RIDGE_LASSO_Inflation_Econometrics_SS26/
 | Zielvariable | ECB SDW | HVPI Deutschland `ICP/M.DE.N.000000.4.INX` |
 | Prädiktoren | Eurostat | Industrieproduktion, Business Surveys, Produzentenpreise, Arbeitslosigkeit, Lohnkostenindex |
 
-33 Prädiktor-Reihen → **165 Features** mit Lags `[1, 2, 3, 6, 12]` (Prognose-Horizont 1 Monat).
+33 Prädiktor-Reihen → 165 Lag-Features (5 Lags × 33 Reihen), nach NaN-Filter **155 Features** (Prognose-Horizont 1 Monat).
 
 > **Hinweis zum Stichprobenfenster:** Der Roh-Cache (`data/raw/data_raw.csv`) reicht
 > bis **2026-05**. IP- und PPI-Reihen wurden auf Basisjahr I21 (2021=100) umgestellt
@@ -78,31 +78,33 @@ Abbildungen liegen zusätzlich als PNG in `results/figures/`.
 
 ## Ergebnis-Überblick (letzter Lauf)
 
-Datensatz: **254 Beobachtungen** (2002-01 – 2024-01), davon **218 Training / 36 Test**
-(Testfenster 2020-11 – 2024-01), **165 Features**.
+<!-- RESULTS:BEGIN -->
+Datensatz: **261 Beobachtungen** (2002-01 – 2024-10), davon **225 Training / 36 Test**
+(Testfenster 2021-06 – 2024-10), **155 Features**.
 
 **Testfenster (fester chronologischer Split), RMSE in Prozentpunkten der Inflationsrate,
 sortiert nach Güte:**
 
 | Modell | λ | Test-RMSE | RMSE/RW | Test-R² | Koeff. ≠ 0 |
 |--------|----------:|----------:|--------:|--------:|-----------:|
-| **Random Walk** | –        | **0.99** | **1.00** | 0.91 | – |
-| AR (Lags 1,2,3,6,12) | –   | 1.01 | 1.02 | 0.90 | 5 |
-| LASSO + HVPI-Lags | 0.066  | 1.44 | 1.45 | 0.80 | 9 / 170 |
-| LASSO | 0.034              | 1.62 | 1.63 | 0.75 | 27 / 165 |
-| Elastic Net | 0.038        | 1.63 | 1.64 | 0.75 | 26 / 165 |
-| Ridge | 403.7              | 2.94 | 2.96 | 0.17 | 165 / 165 |
-| OLS | –                    | 5.03 | 5.06 | −1.41 | 165 / 165 |
+| **Random Walk** | –        | **0.94** | **1.00** | 0.89 | – |
+| Lag-Modell (ADL) | –      | 1.05 | 1.12 | 0.87 | 5 |
+| LASSO + HVPI-Lags | 0.066  | 1.48 | 1.57 | 0.74 | 7 / 160 |
+| LASSO | 0.028              | 1.80 | 1.91 | 0.61 | 30 / 155 |
+| Elastic Net | 0.049        | 1.85 | 1.97 | 0.58 | 35 / 155 |
+| Ridge | 790.6               | 3.39 | 3.61 | -0.39 | 155 / 155 |
+| OLS | –                    | 3.40 | 3.62 | −0.40 | 155 / 155 |
 
-**Robustheitscheck (Rolling-Origin, Expanding Window):** RW 0.99 · AR 0.96 · LASSO+HVPI 0.98 ·
-LASSO 1.05 · Elastic Net 1.05 · Ridge 1.52 · OLS 3.61. Die adaptiven Modelle (AR, LASSO+HVPI)
-erreichen den RW hier knapp, schlagen ihn aber nicht nachweisbar.
+**Robustheitscheck (Rolling-Origin, Expanding Window):** RW 0.94 · AR 0.95 · LASSO+HVPI 0.95 ·
+LASSO 1.08 · Elastic Net 1.09 · Ridge 1.99 · OLS 2.34. Die adaptiven Modelle (AR, LASSO+HVPI)
+erreichen den RW hier knapp, schlagen ihn aber nicht nachweisbar (Diebold-Mariano n.s.).
+<!-- RESULTS:END -->
 
 ### Kernbefunde
 
-1. **Regularisierung behebt OLS-Overfitting.** OLS ist bei p/n ≈ 0,76 und starker
-   Multikollinearität unbrauchbar (Test-R² −1,41); Ridge/LASSO/Elastic Net stabilisieren die
-   Schätzung deutlich (R² bis 0,75), LASSO selektiert dabei nur 27 von 165 Features.
+1. **Regularisierung behebt OLS-Overfitting.** OLS ist bei p/n ≈ 0,69 und starker
+   Multikollinearität unbrauchbar (Test-R² −0,40); Ridge/LASSO/Elastic Net stabilisieren die
+   Schätzung deutlich (R² bis 0,74 mit LASSO+HVPI), LASSO selektiert dabei nur 29 von 155 Features.
 2. **Kein Modell schlägt den naiven Random Walk.** Über alle Horizonte (h ∈ {1,3,6,12}) ist
    `ŷ_t = y_{t-1}` die härteste Messlatte — die makroökonomischen Modelle liegen darüber.
 3. **Makro-Mehrwert ≈ 0.** Erst mit den HVPI-Eigen-Lags (LASSO+HVPI) wird der RW *erreicht*,
@@ -110,6 +112,6 @@ erreichen den RW hier knapp, schlagen ihn aber nicht nachweisbar.
    beste Einzelprädiktor — die letzte Inflationsrate — fehlt.
 
 Das deckt sich mit der Literatur zur Inflationsprognose (Atkeson & Ohanian 2001; Stock &
-Watson 2007): strukturelle Modelle schlagen den naiven Benchmark in der Regel nicht. Eine
-formale Absicherung (Diebold-Mariano-Test) sowie die Verlängerung der Stichprobe um die
-Disinflation 2024–25 sind im [Implementierungsplan](IMPLEMENTIERUNGSPLAN.md) (Phase B) vorgesehen.
+Watson 2007): strukturelle Modelle schlagen den naiven Benchmark in der Regel nicht. Der
+Diebold-Mariano-Test (HLN-Korrektur, T=36) bestätigt: kein Modell schlägt den RW
+nachweisbar auf dem 5-%-Niveau.
