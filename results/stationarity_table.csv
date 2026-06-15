@@ -1,0 +1,13 @@
+Reihe,Transform.,ADF-Stat.,ADF p-Wert,ADF Urteil,KPSS-Stat.,KPSS p-Wert,KPSS Urteil,Gesamt
+HVPI,Niveau,0.778,0.9913,I(1)?,2.443,0.01,I(1)?,nicht-stationär
+HVPI,YoY (%),-3.3,0.0149,I(0),0.491,0.0437,I(1)?,unklar/persistent
+IP (Verarb. Gew.),Niveau,-2.366,0.1515,I(1)?,1.484,0.01,I(1)?,nicht-stationär
+IP (Verarb. Gew.),YoY (%),-3.371,0.012,I(0),0.198,0.1,I(0),stationär
+PPI (Gesamt),Niveau,-0.473,0.8972,I(1)?,2.036,0.01,I(1)?,nicht-stationär
+PPI (Gesamt),YoY (%),-3.353,0.0127,I(0),0.14,0.1,I(0),stationär
+BS (Konjunkturklima),Niveau,-4.763,0.0001,I(0),0.162,0.1,I(0),stationär
+BS (Konjunkturklima),YoY (%),-18.278,0.0,I(0),0.161,0.1,I(0),stationär
+ALQ (Gesamt),Niveau,-0.837,0.808,I(1)?,2.342,0.01,I(1)?,nicht-stationär
+ALQ (Gesamt),YoY (%),-3.381,0.0116,I(0),0.279,0.1,I(0),stationär
+LCI (Lohnkosten BN),Niveau,2.359,0.999,I(1)?,2.747,0.01,I(1)?,nicht-stationär
+LCI (Lohnkosten BN),YoY (%),-2.911,0.0441,I(0),0.892,0.01,I(1)?,unklar/persistent

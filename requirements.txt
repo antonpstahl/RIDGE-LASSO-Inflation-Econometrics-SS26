@@ -13,5 +13,5 @@ jupyter>=1.0
 # Testing
 pytest>=8.0
 
-# Optional – wird erst durch geplante Erweiterungen benötigt (AR-Benchmark, Diebold-Mariano)
-# statsmodels==0.14.4
+# Stationaritätstests (ADF/KPSS) und AR-Benchmark
+statsmodels>=0.14.4

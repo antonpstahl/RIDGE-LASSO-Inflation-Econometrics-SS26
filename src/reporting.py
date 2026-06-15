@@ -469,6 +469,37 @@ def export_horizons_table(df_horizons):
     print("Horizont-Tabelle als LaTeX gespeichert: results/horizons_table.tex")
 
 
+def export_stationarity_table(df_stationarity):
+    """Exportiert Stationaritätstabelle nach results/stationarity_table.{csv,tex}."""
+    df_stationarity.to_csv("results/stationarity_table.csv", index=False)
+    print("results/stationarity_table.csv gespeichert.")
+
+    col_rename = {
+        "Reihe":       "Reihe",
+        "Transform.":  "Transform.",
+        "ADF-Stat.":   "ADF-Stat.",
+        "ADF p-Wert":  "ADF $p$",
+        "ADF Urteil":  "ADF",
+        "KPSS-Stat.":  "KPSS-Stat.",
+        "KPSS p-Wert": "KPSS $p$",
+        "KPSS Urteil": "KPSS",
+        "Gesamt":      "Urteil",
+    }
+    df_tex = df_stationarity.rename(columns=col_rename)
+    latex_str = df_tex.to_latex(
+        index=False, escape=False,
+        caption=(
+            "ADF- und KPSS-Stationaritätstests auf Niveau- und YoY-transformierten Reihen. "
+            "ADF H\\textsubscript{0}: Einheitswurzel; KPSS H\\textsubscript{0}: Stationarität. "
+            "Urteil \\emph{stationär}: ADF verwirft ($p<0{,}05$) und KPSS verwirft nicht ($p\\geq0{,}05$)."
+        ),
+        label="tab:stationaritaet",
+    )
+    with open("results/stationarity_table.tex", "w") as f:
+        f.write(latex_str)
+    print("results/stationarity_table.tex gespeichert.")
+
+
 def export_sources_table():
     from .config import (
         BS_INDICATORS, LCI_SERIES, PROD_SECTORS, PPI_SECTORS, UNEMP_GROUPS,

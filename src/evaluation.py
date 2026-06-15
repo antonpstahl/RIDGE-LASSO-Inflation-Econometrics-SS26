@@ -1,4 +1,4 @@
-"""Stage 4: Rolling-Origin OOS, Diebold-Mariano, Selektion, Horizonte."""
+"""Stage 4: Rolling-Origin OOS, Diebold-Mariano, Selektion, Horizonte, Stationaritaet."""
 import numpy as np
 import pandas as pd
 from scipy import stats as sp_stats
@@ -355,3 +355,90 @@ def compute_horizon_analysis(df_yoy, tscv=None):
     print("\nHorizont-Tabelle gespeichert: results/horizons_table.csv")
 
     return {"df_horizons": df_horizons}
+
+
+# ── Stationaritätstests (ADF + KPSS) ─────────────────────────────────────────
+
+# Repräsentative Prädiktoren je Gruppe (Niveau-Spaltenname im Rohdata-Frame)
+_STATIONARITY_SERIES = {
+    "HVPI":                    "HVPI",
+    "IP (Verarb. Gew.)":       "IP_Verarbeitendes_Gew",
+    "PPI (Gesamt)":            "PPI_Gesamt",
+    "BS (Konjunkturklima)":    "BS_Konjunkturklima",
+    "ALQ (Gesamt)":            "ALQ_Gesamt",
+    "LCI (Lohnkosten BN)":     "LCI_Lohnkosten_BN",
+}
+
+
+def compute_stationarity_tests(df_raw, df_yoy):
+    """ADF- und KPSS-Test auf Niveau- und YoY-Reihen (Stufe 4 – Diagnostik).
+
+    Testet für jede Reihe in _STATIONARITY_SERIES sowohl das Niveau als auch
+    die YoY-Transformierte und gibt einen kompakten DataFrame zurück.
+
+    ADF  H0: Einheitswurzel (nicht-stationär) → Verwerfung belegt Stationarität.
+    KPSS H0: Stationarität              → Nicht-Verwerfung belegt Stationarität.
+    """
+    from statsmodels.tsa.stattools import adfuller, kpss
+
+    records = []
+    for label, col in _STATIONARITY_SERIES.items():
+        for transform, series_src in [("Niveau", df_raw), ("YoY (%)", df_yoy)]:
+            if col not in series_src.columns:
+                continue
+            s = series_src[col].dropna()
+            if len(s) < 20:
+                continue
+
+            # ADF (maxlag=None → Schwert-Formel; regression='c' = Konstante)
+            adf_stat, adf_p, _, _, adf_crit, _ = adfuller(s, regression="c", autolag="AIC")
+            adf_reject = bool(adf_p < 0.05)
+
+            # KPSS (regression='c' = Level-Stationarität; nlags='auto')
+            # InterpolationWarning bei Randwerten (p<0.01 oder p>0.10) ist erwartet.
+            try:
+                import warnings as _warnings
+                with _warnings.catch_warnings():
+                    _warnings.simplefilter("ignore")
+                    kpss_stat, kpss_p, _, kpss_crit = kpss(s, regression="c", nlags="auto")
+                kpss_reject = bool(kpss_p < 0.05)
+            except Exception:
+                kpss_stat, kpss_p, kpss_reject = np.nan, np.nan, None
+
+            # Gemeinsames Urteil: stationär wenn ADF verwirft UND KPSS nicht verwirft
+            if adf_reject and (kpss_reject is False):
+                verdict = "stationär"
+            elif (not adf_reject) and (kpss_reject is True):
+                verdict = "nicht-stationär"
+            else:
+                verdict = "unklar/persistent"
+
+            records.append({
+                "Reihe":       label,
+                "Transform.":  transform,
+                "ADF-Stat.":   round(adf_stat, 3),
+                "ADF p-Wert":  round(float(adf_p), 4),
+                "ADF Urteil":  "I(0)" if adf_reject else "I(1)?",
+                "KPSS-Stat.":  round(float(kpss_stat), 3) if not np.isnan(kpss_stat) else "–",
+                "KPSS p-Wert": round(float(kpss_p), 4)   if not np.isnan(kpss_p)   else "–",
+                "KPSS Urteil": "I(0)" if (kpss_reject is False) else ("I(1)?" if kpss_reject else "–"),
+                "Gesamt":      verdict,
+            })
+
+    df_stat = pd.DataFrame(records)
+    print("\nStationaritätstests (ADF & KPSS)")
+    print("=" * 75)
+    print(df_stat.to_string(index=False))
+    print()
+    print("ADF: H0 = Einheitswurzel; Verwerfung (p<0.05) → stationär.")
+    print("KPSS: H0 = Stationarität; Nicht-Verwerfung (p≥0.05) → stationär.")
+    print()
+    n_stat = (df_stat["Gesamt"] == "stationär").sum()
+    n_ni   = (df_stat["Gesamt"] == "nicht-stationär").sum()
+    n_unk  = df_stat["Gesamt"].str.startswith("unklar").sum()
+    print(f"Urteil: {n_stat} stationär, {n_ni} nicht-stationär, {n_unk} unklar/persistent.")
+    print("Hinweis: HVPI-YoY zeigt hohe Persistenz (nahe I(1)) — konsistent mit")
+    print("der Literatur zur Inflationsdynamik (Stock & Watson 2007). Die YoY-")
+    print("Transformation verringert die Persistenz gegenüber dem Niveau klar,")
+    print("ist aber bei kurzen OOS-Fenstern kein Garant für vollständige Stationarität.")
+    return {"df_stationarity": df_stat}
