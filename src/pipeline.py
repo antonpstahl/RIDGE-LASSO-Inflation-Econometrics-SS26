@@ -9,9 +9,11 @@ from .evaluation import (
     compute_horizon_analysis,
     compute_oos_predictions,
     compute_selection_stability,
+    compute_single_split_inference,
 )
 from .reporting import (
     export_horizons_table,
+    export_inference_table,
     export_results_table,
     export_sources_table,
     fig_01_hvpi,
@@ -83,6 +85,7 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
     models_ctx = fit_all_models(X, y, splits, tscv=config.TSCV)
 
     # ── Stage 4: Evaluation ───────────────────────────────────────────────────
+    inf_ctx = compute_single_split_inference(models_ctx, splits)
     oos_ctx = compute_oos_predictions(models_ctx, splits, X, y, train_end)
 
     if adaptive_rolling:
@@ -102,6 +105,7 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
         "X": X, "y": y, "train_end": train_end,
         **splits,
         **models_ctx,
+        **inf_ctx,
         **oos_ctx,
         **adap_ctx,
         **compare_ctx,
@@ -136,6 +140,7 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
 
     print_summary(ctx)
     export_results_table(models_ctx["results"], splits["y_test"])
+    export_inference_table(inf_ctx["df_inference"], splits["y_test"])
     export_horizons_table(hor_ctx["df_horizons"])
     export_sources_table()
     update_readmes(ctx)

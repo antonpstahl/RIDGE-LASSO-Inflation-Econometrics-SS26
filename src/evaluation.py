@@ -260,6 +260,113 @@ def compute_dm_tests(oos_ctx, adap_ctx=None):
     return {"dm_df": dm_df}
 
 
+# ── Einzelsplit-Inferenz: Block-Bootstrap + DM ───────────────────────────────
+
+def _block_bootstrap_rmse(errors: np.ndarray, block_len: int = 6,
+                           B: int = 2000, rng=None) -> np.ndarray:
+    """Circular block bootstrap — gibt B RMSE-Werte als Bootstrap-Verteilung zurück."""
+    if rng is None:
+        rng = np.random.default_rng(42)
+    T = len(errors)
+    n_blocks = int(np.ceil(T / block_len))
+    boot_rmse = np.empty(B)
+    for i in range(B):
+        starts  = rng.integers(0, T, size=n_blocks)
+        indices = np.concatenate([np.arange(s, s + block_len) % T for s in starts])[:T]
+        boot_rmse[i] = np.sqrt(np.mean(errors[indices] ** 2))
+    return boot_rmse
+
+
+def compute_single_split_inference(models_ctx, splits, block_len: int = 6,
+                                    B: int = 2000, seed: int = 42):
+    """RMSE-Block-Bootstrap-KI + DM-Test auf den Einzelfenster-Testfehlern (T≈36).
+
+    Block-Bootstrap (zirkulär, l≈√T=6, B=2000) für RMSE-95%-KI je Modell.
+    DM-Test (HLN-korrigiert, h=1) gegen Random Walk — identische Implementierung
+    wie beim Rolling-Origin (compute_dm_tests), aber auf den Einzelsplit-Fehlern.
+
+    Parameters
+    ----------
+    models_ctx : ctx-Dict aus training.fit_all_models
+    splits     : ctx-Dict aus data_preprocessing.prepare_splits
+    block_len  : Bootstrap-Blocklänge (default 6 ≈ √36)
+    B          : Bootstrap-Replikationen
+    seed       : Zufallsseed (Reproduzierbarkeit)
+
+    Returns
+    -------
+    dict mit 'df_inference': DataFrame (Modell × RMSE + CI + DM-Stat + p + Sig.)
+    """
+    y_test = splits["y_test"]
+    rng    = np.random.default_rng(seed)
+
+    def _s(arr):
+        if isinstance(arr, pd.Series):
+            return arr.reindex(y_test.index)
+        return pd.Series(arr, index=y_test.index)
+
+    preds_map = {
+        "Random Walk":      _s(models_ctx["y_pred_rw_test"]),
+        "Lag-Modell (ADL)": _s(models_ctx["y_pred_ar_test"]),
+        "OLS":              _s(models_ctx["y_pred_ols_test"]),
+        "Ridge":            _s(models_ctx["y_pred_ridge_test"]),
+        "LASSO":            _s(models_ctx["y_pred_lasso_test"]),
+        "Elastic Net":      _s(models_ctx["y_pred_enet_test"]),
+        "LASSO+HVPI":       _s(models_ctx["y_pred_lasso_plus_test"]),
+        "Adaptive LASSO":   _s(models_ctx["y_pred_alasso_test"]),
+    }
+
+    e_rw_series = (_s(models_ctx["y_pred_rw_test"]) - y_test).dropna()
+    T = len(e_rw_series)
+
+    records = []
+    print(f"\nEinzelfenster-Inferenz: Block-Bootstrap RMSE-95%-KI + DM-Test (T={T})")
+    print(f"Block-Bootstrap: B={B}, Blocklänge l={block_len} (≈ √T={int(T**0.5)})")
+    print(
+        f"{'Modell':<22} {'RMSE':>7} {'CI [2.5%, 97.5%]':>20}"
+        f" {'DM-Stat':>9} {'p-Wert':>9} {'Sig.':>6}"
+    )
+    print("-" * 80)
+
+    for name, preds in preds_map.items():
+        e_mod_series = (preds - y_test).dropna()
+        common       = e_rw_series.index.intersection(e_mod_series.index)
+        e_rw_a       = e_rw_series.loc[common].values
+        e_mod_a      = e_mod_series.loc[common].values
+
+        rmse          = np.sqrt(np.mean(e_mod_a ** 2))
+        boot_rmse_arr = _block_bootstrap_rmse(e_mod_a, block_len=block_len, B=B, rng=rng)
+        ci_lo, ci_hi  = np.percentile(boot_rmse_arr, [2.5, 97.5])
+
+        if name == "Random Walk":
+            dm, pv, sig = np.nan, np.nan, "–"
+        else:
+            dm, pv = diebold_mariano(e_rw_a, e_mod_a, h=1)
+            sig    = "**" if pv < 0.05 else ("*" if pv < 0.10 else "n.s.")
+
+        records.append({
+            "Modell":    name,
+            "Test RMSE": round(rmse, 4),
+            "CI 2.5%":   round(ci_lo, 4),
+            "CI 97.5%":  round(ci_hi, 4),
+            "DM-Stat":   round(float(dm), 3) if not np.isnan(dm) else np.nan,
+            "p-Wert":    round(float(pv), 4) if not np.isnan(pv) else np.nan,
+            "Sig.":      sig,
+        })
+
+        ci_str = f"[{ci_lo:.3f}, {ci_hi:.3f}]"
+        dm_str = f"{float(dm):+.3f}" if not np.isnan(dm) else "        –"
+        pv_str = f"{float(pv):.4f}" if not np.isnan(pv) else "        –"
+        print(f"  {name:<20} {rmse:>7.4f} {ci_str:>20} {dm_str:>9} {pv_str:>9} {sig:>6}")
+
+    print("-" * 80)
+    print("DM > 0: Modell schlägt RW (niedrig. quadr. Verlust)  | * p<0.10  ** p<0.05")
+    print(f"Hinweis: T={T} Testpunkte — DM hat geringe Power; Unterschiede i.d.R. n.s.")
+
+    df_inf = pd.DataFrame(records).set_index("Modell")
+    return {"df_inference": df_inf}
+
+
 # ── Selektionsstabilität ──────────────────────────────────────────────────────
 
 def compute_selection_stability(X, y, train_end, lambda_lasso):
