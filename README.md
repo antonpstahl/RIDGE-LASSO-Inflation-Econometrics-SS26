@@ -47,10 +47,10 @@ RIDGE_LASSO_Inflation_Econometrics_SS26/
 33 Prädiktor-Reihen → **165 Features** mit Lags `[1, 2, 3, 6, 12]` (Prognose-Horizont 1 Monat).
 
 > **Hinweis zum Stichprobenfenster:** Der Roh-Cache (`data/raw/data_raw.csv`) reicht
-> bis **2026-04**, die Modellierungsstichprobe endet jedoch bei **2024-01**. Grund: Die
-> Eurostat-Industrieproduktions- und Produzentenpreis-Reihen enden im verwendeten Cache
-> bei 2023-12; der >20 %-NaN-Filter und das abschließende `dropna` schneiden auf das
-> gemeinsame Fenster aller Reihen zu (Horizont +1 → letztes Ziel 2024-01).
+> bis **2026-05**. IP- und PPI-Reihen wurden auf Basisjahr I21 (2021=100) umgestellt
+> (I15 endete bei 2023-12; Wachstumsraten inhaltlich identisch). Kürzestes Prädiktorende:
+> `BS_Produktionserwart` 2024-09 → Feature-Matrix reicht bis ca. **2024-10**; das
+> `dropna` schneidet auf das gemeinsame Beobachtungsfenster zu.
 
 > **Hinweis zur Datenquelle:** Der ursprüngliche Vorgehensplan sah die Deutsche
 > Bundesbank (SDMX) vor. Deren API war aus der Arbeitsumgebung nicht erreichbar,
