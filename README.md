@@ -89,14 +89,14 @@ sortiert nach Güte:**
 |--------|----------:|----------:|--------:|--------:|-----------:|
 | **Random Walk** | –        | **0.94** | **1.00** | 0.89 | – |
 | Lag-Modell (ADL) | –      | 1.05 | 1.12 | 0.87 | 5 |
-| LASSO + HVPI-Lags | 0.066  | 1.48 | 1.57 | 0.74 | 7 / 160 |
-| LASSO | 0.028              | 1.80 | 1.91 | 0.61 | 30 / 155 |
-| Elastic Net | 0.049        | 1.85 | 1.97 | 0.58 | 35 / 155 |
-| Ridge | 790.6               | 3.39 | 3.61 | -0.39 | 155 / 155 |
+| LASSO + HVPI-Lags | 0.064  | 1.47 | 1.57 | 0.74 | 7 / 160 |
+| LASSO | 0.030              | 1.83 | 1.95 | 0.59 | 29 / 155 |
+| Elastic Net | 0.039        | 1.85 | 1.96 | 0.59 | 34 / 155 |
+| Ridge | 54.8               | 1.96 | 2.08 | 0.54 | 155 / 155 |
 | OLS | –                    | 3.40 | 3.62 | −0.40 | 155 / 155 |
 
 **Robustheitscheck (Rolling-Origin, Expanding Window):** RW 0.94 · AR 0.95 · LASSO+HVPI 0.95 ·
-LASSO 1.08 · Elastic Net 1.09 · Ridge 1.99 · OLS 2.34. Die adaptiven Modelle (AR, LASSO+HVPI)
+LASSO 1.09 · Elastic Net 1.09 · Ridge 1.16 · OLS 2.34. Die adaptiven Modelle (AR, LASSO+HVPI)
 erreichen den RW hier knapp, schlagen ihn aber nicht nachweisbar (Diebold-Mariano n.s.).
 <!-- RESULTS:END -->
 
