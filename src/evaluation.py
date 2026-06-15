@@ -1,4 +1,6 @@
 """Stage 4: Rolling-Origin OOS, Diebold-Mariano, Selektion, Horizonte, Stationaritaet."""
+import pathlib
+
 import numpy as np
 import pandas as pd
 from scipy import stats as sp_stats
@@ -6,6 +8,7 @@ from sklearn.linear_model import (
     ElasticNet, ElasticNetCV, Lasso, LassoCV, LinearRegression, Ridge, RidgeCV,
 )
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import StandardScaler
 
 from .config import (
@@ -395,11 +398,17 @@ def compute_selection_stability(X, y, train_end, lambda_lasso):
 # ── Horizont-Analyse ──────────────────────────────────────────────────────────
 
 def compute_horizon_analysis(df_yoy, tscv=None):
-    """RMSE je Horizont h ∈ {1, 3, 6, 12} (neue CV je Horizont)."""
+    """RMSE je Horizont h ∈ {1, 3, 6, 12}; für h>1 Embargo-CV mit gap=h−1."""
     if tscv is None:
         tscv = TSCV
 
     from sklearn.linear_model import ElasticNetCV, LassoCV, LinearRegression, RidgeCV
+
+    # Lade vorherige Tabelle für Vorher/Nachher-Vergleich (Robustheitsnachweis AP17)
+    _prev_path = pathlib.Path("results/horizons_table.csv")
+    df_prev = pd.read_csv(_prev_path, index_col=0) if _prev_path.exists() else None
+    if df_prev is not None:
+        print("Vor-Embargo-RMSE aus results/horizons_table.csv geladen (Vergleich nach dem Loop).")
 
     horizon_records = []
     print(f"{'h':>3}  {'RW':>7}  {'OLS':>7}  {'Ridge':>7}  {'LASSO':>7} {'(sel)':>5}"
@@ -407,6 +416,14 @@ def compute_horizon_analysis(df_yoy, tscv=None):
     print("-" * 65)
 
     for h in HORIZONS:
+        # Embargo/Gap in der CV: Bei h-Schritt-Prognosen überlappen die letzten h−1
+        # Beobachtungen vor dem Validierungsfold mit dem Prognosehorizont → Leckage
+        # an Fold-Grenzen. gap=h−1 schließt diese Punkte aus. h=1 bleibt unverändert.
+        tscv_h = (
+            TimeSeriesSplit(n_splits=tscv.n_splits, test_size=tscv.test_size, gap=h - 1)
+            if h > 1 else tscv
+        )
+
         Xh, yh = build_feature_matrix(
             df_yoy, lags=LAGS, forecast_horizon=h, test_months=TEST_MONTHS
         )
@@ -417,29 +434,29 @@ def compute_horizon_analysis(df_yoy, tscv=None):
         Xtr_hs = sc_h.transform(Xtr_h)
         Xte_hs = sc_h.transform(Xte_h)
 
-        # Random Walk (h-Schritt)
+        # Random Walk (h-Schritt) — kein CV
         y_rw_h    = yh.shift(h).reindex(yte_h.index).dropna()
         rmse_rw_h = np.sqrt(mean_squared_error(yte_h.loc[y_rw_h.index], y_rw_h))
 
-        # OLS
+        # OLS — kein CV
         ols_h      = LinearRegression().fit(Xtr_hs, ytr_h)
         rmse_ols_h = np.sqrt(mean_squared_error(yte_h, ols_h.predict(Xte_hs)))
 
-        # Ridge
-        ridge_h      = RidgeCV(alphas=ALPHAS_RIDGE, cv=tscv).fit(Xtr_hs, ytr_h)
+        # Ridge mit Embargo-CV (gap=h−1 für h>1)
+        ridge_h      = RidgeCV(alphas=ALPHAS_RIDGE, cv=tscv_h).fit(Xtr_hs, ytr_h)
         rmse_ridge_h = np.sqrt(mean_squared_error(yte_h, ridge_h.predict(Xte_hs)))
 
-        # LASSO
+        # LASSO mit Embargo-CV (gap=h−1 für h>1)
         lasso_h = LassoCV(
-            alphas=ALPHAS_LASSO, cv=tscv, max_iter=10000, n_jobs=-1
+            alphas=ALPHAS_LASSO, cv=tscv_h, max_iter=10000, n_jobs=-1
         ).fit(Xtr_hs, ytr_h)
         rmse_lasso_h = np.sqrt(mean_squared_error(yte_h, lasso_h.predict(Xte_hs)))
         nsel_lasso_h = int(np.sum(lasso_h.coef_ != 0))
 
-        # Elastic Net
+        # Elastic Net mit Embargo-CV (gap=h−1 für h>1)
         enet_h = ElasticNetCV(
             l1_ratio=L1_RATIOS_ENET_INNER, alphas=ALPHAS_LASSO,
-            cv=tscv, max_iter=10000, n_jobs=-1,
+            cv=tscv_h, max_iter=10000, n_jobs=-1,
         ).fit(Xtr_hs, ytr_h)
         rmse_enet_h = np.sqrt(mean_squared_error(yte_h, enet_h.predict(Xte_hs)))
         nsel_enet_h = int(np.sum(enet_h.coef_ != 0))
@@ -465,6 +482,22 @@ def compute_horizon_analysis(df_yoy, tscv=None):
                   f"Elastic Net {rec['EN Sel.']} Variablen (reiner Intercept).")
             print("Interpretation: Kein ausnutzbares Makro-Signal auf Jahreshorizont "
                   "(λ-Pfad bevorzugt Nulllösung). RMSE identisch → Befund, kein Bug.")
+
+    # RMSE-Differenz Embargo vs. ohne Embargo (Robustheitsnachweis AP17)
+    if df_prev is not None:
+        print("\nRMSE-Differenz Embargo-CV vs. ohne Embargo (positive Δ = Embargo erhöht RMSE):")
+        print(f"  {'h':>3}  {'ΔLASSO':>9}  {'ΔRidge':>9}  {'ΔEN':>9}  Anmerkung")
+        print("  " + "-" * 60)
+        for rec in horizon_records:
+            h = rec["Horizont h"]
+            if h == 1:
+                print(f"  h={h:2d}: (h=1 unverändert — gap=0, kein Embargo-Effekt)")
+            elif h in df_prev.index:
+                d_lasso = rec["LASSO"]       - float(df_prev.loc[h, "LASSO"])
+                d_ridge = rec["Ridge"]       - float(df_prev.loc[h, "Ridge"])
+                d_en    = rec["Elastic Net"] - float(df_prev.loc[h, "Elastic Net"])
+                print(f"  h={h:2d}: ΔLASSO={d_lasso:+.4f}  ΔRidge={d_ridge:+.4f}"
+                      f"  ΔEN={d_en:+.4f}  (gap={h-1})")
 
     print(df_horizons.to_string())
     df_horizons.to_csv("results/horizons_table.csv")

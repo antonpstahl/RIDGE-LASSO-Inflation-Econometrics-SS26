@@ -102,18 +102,20 @@ Datensatz: **261 Beobachtungen** (2002-01 – 2024-10), davon **225 Training / 3
 (Testfenster 2021-06 – 2024-10), **155 Features**.
 
 **Testfenster (fester chronologischer Split), RMSE in Prozentpunkten der Inflationsrate,
-sortiert nach Güte:**
+sortiert nach Güte (DM = Diebold-Mariano-Test vs. Random Walk; n.s. = nicht signifikant):**
 
-| Modell | λ | Test-RMSE | RMSE/RW | Test-R² | Koeff. ≠ 0 |
-|--------|----------:|----------:|--------:|--------:|-----------:|
-| **Random Walk** | –        | **0.94** | **1.00** | 0.89 | – |
-| Lag-Modell (ADL) | –      | 1.05 | 1.12 | 0.87 | 5 |
-| Adaptive LASSO | 0.00032 | 1.38 | 1.47 | 0.77 | 50 / 155 |
-| LASSO + HVPI-Lags | 0.064  | 1.47 | 1.57 | 0.74 | 7 / 160 |
-| LASSO | 0.030              | 1.83 | 1.95 | 0.59 | 29 / 155 |
-| Elastic Net | 0.039        | 1.85 | 1.96 | 0.59 | 34 / 155 |
-| Ridge | 54.8               | 1.96 | 2.08 | 0.54 | 155 / 155 |
-| OLS | –                    | 3.40 | 3.62 | −0.40 | 155 / 155 |
+| Modell | λ | Test-RMSE | RMSE/RW | Test-R² | DM | Koeff. ≠ 0 |
+|--------|----------:|----------:|--------:|--------:|---:|-----------:|
+| **Random Walk** | –        | **0.94** | **1.00** | 0.89 | – | – |
+| Lag-Modell (ADL) | –      | 1.05 | 1.12 | 0.87 |  n.s. | 5 |
+| Adaptive LASSO | 0.00032 | 1.38 | 1.47 | 0.77 |  * | 50 / 155 |
+| LASSO + HVPI-Lags | 0.064  | 1.47 | 1.57 | 0.74 |  ** | 7 / 160 |
+| LASSO | 0.030              | 1.83 | 1.95 | 0.59 |  ** | 29 / 155 |
+| Elastic Net | 0.039        | 1.85 | 1.96 | 0.59 |  ** | 34 / 155 |
+| Ridge | 54.8               | 1.96 | 2.08 | 0.54 |  ** | 155 / 155 |
+| OLS | –                    | 3.40 | 3.62 | −0.40 |  ** | 155 / 155 |
+
+DM-Test (HLN-korrigiert, T=36): Kein Modell schlägt den RW signifikant (geringe Power bei T=36). Block-Bootstrap-KI je Modell: siehe `results/inference_table.csv`.
 
 **Robustheitscheck (Rolling-Origin, Expanding Window):** RW 0.94 · AR 0.95 · LASSO+HVPI 0.95 ·
 LASSO 1.09 · Elastic Net 1.09 · Ridge 1.16 · OLS 2.34. Die adaptiven Modelle (AR, LASSO+HVPI)

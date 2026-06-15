@@ -100,18 +100,20 @@ Dataset: **261 observations** (2002-01 – 2024-10), of which **225 training / 3
 (test window 2021-06 – 2024-10), **155 features**.
 
 **Test window (fixed chronological split), RMSE in percentage points of the inflation rate,
-sorted by performance:**
+sorted by performance (DM = Diebold-Mariano test vs. random walk; n.s. = not significant):**
 
-| Model | λ | Test RMSE | RMSE/RW | Test R² | Coeff. ≠ 0 |
-|-------|----------:|----------:|--------:|--------:|-----------:|
-| **Random Walk** | –        | **0.94** | **1.00** | 0.89 | – |
-| Lag model (ADL) | –      | 1.05 | 1.12 | 0.87 | 5 |
-| Adaptive LASSO | 0.00032 | 1.38 | 1.47 | 0.77 | 50 / 155 |
-| LASSO + HICP lags | 0.064  | 1.47 | 1.57 | 0.74 | 7 / 160 |
-| LASSO | 0.030              | 1.83 | 1.95 | 0.59 | 29 / 155 |
-| Elastic Net | 0.039        | 1.85 | 1.96 | 0.59 | 34 / 155 |
-| Ridge | 54.8               | 1.96 | 2.08 | 0.54 | 155 / 155 |
-| OLS | –                    | 3.40 | 3.62 | −0.40 | 155 / 155 |
+| Model | λ | Test RMSE | RMSE/RW | Test R² | DM | Coeff. ≠ 0 |
+|-------|----------:|----------:|--------:|--------:|---:|-----------:|
+| **Random Walk** | –        | **0.94** | **1.00** | 0.89 | – | – |
+| Lag model (ADL) | –      | 1.05 | 1.12 | 0.87 |  n.s. | 5 |
+| Adaptive LASSO | 0.00032 | 1.38 | 1.47 | 0.77 |  * | 50 / 155 |
+| LASSO + HICP lags | 0.064  | 1.47 | 1.57 | 0.74 |  ** | 7 / 160 |
+| LASSO | 0.030              | 1.83 | 1.95 | 0.59 |  ** | 29 / 155 |
+| Elastic Net | 0.039        | 1.85 | 1.96 | 0.59 |  ** | 34 / 155 |
+| Ridge | 54.8               | 1.96 | 2.08 | 0.54 |  ** | 155 / 155 |
+| OLS | –                    | 3.40 | 3.62 | −0.40 |  ** | 155 / 155 |
+
+DM test (HLN-corrected, T=36): no model beats the RW significantly (low power at T=36). Block-bootstrap CIs per model: see `results/inference_table.csv`.
 
 **Robustness check (Rolling-Origin, expanding window):** RW 0.94 · AR 0.95 · LASSO+HICP 0.95 ·
 LASSO 1.09 · Elastic Net 1.09 · Ridge 1.16 · OLS 2.34. The adaptive models (AR, LASSO+HICP)
