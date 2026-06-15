@@ -34,8 +34,6 @@ RIDGE_LASSO_Inflation_Econometrics_SS26/
 │   ├── horizons_table.csv      RMSE je Prognose-Horizont h ∈ {1,3,6,12}
 │   ├── sources_table.csv       Datenquellen (Variable → ECB/Eurostat-Code)
 │   └── figures/                fig_01 … fig_13 (PNG)
-└── docs/
-    └── Vorgehensplan_Seminararbeit_Oekonometrie.pdf
 ```
 
 ## Datenquellen
