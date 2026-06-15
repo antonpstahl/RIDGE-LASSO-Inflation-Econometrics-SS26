@@ -9,7 +9,7 @@ Forecasting the German HICP inflation rate from macroeconomic indicators using
 
 **Research question:** Do macroeconomic predictors with Ridge/LASSO beat pure inflation
 persistence (Random Walk)?
-**Key finding:** Regularisation fixes the severe OLS overfitting (test R² −0.40 → 0.74),
+**Key finding:** Regularisation fixes the severe OLS overfitting (test R² −0.40 → 0.77, Adaptive LASSO),
 **but does not beat the Random Walk** — the marginal macroeconomic contribution beyond
 persistence is near zero. The analysis demonstrates regularisation and variable selection
 with many highly collinear predictors *and* honestly benchmarks their forecast value
@@ -106,6 +106,7 @@ sorted by performance:**
 |-------|----------:|----------:|--------:|--------:|-----------:|
 | **Random Walk** | –        | **0.94** | **1.00** | 0.89 | – |
 | Lag model (ADL) | –      | 1.05 | 1.12 | 0.87 | 5 |
+| Adaptive LASSO | 0.00032 | 1.38 | 1.47 | 0.77 | 50 / 155 |
 | LASSO + HICP lags | 0.064  | 1.47 | 1.57 | 0.74 | 7 / 160 |
 | LASSO | 0.030              | 1.83 | 1.95 | 0.59 | 29 / 155 |
 | Elastic Net | 0.039        | 1.85 | 1.96 | 0.59 | 34 / 155 |
@@ -120,8 +121,9 @@ nearly match the RW here, but do not beat it significantly (Diebold-Mariano n.s.
 ### Key findings
 
 1. **Regularisation fixes OLS overfitting.** OLS is unusable at p/n ≈ 0.69 with strong
-   multicollinearity (test R² −0.40); Ridge/LASSO/Elastic Net stabilise estimation substantially
-   (R² up to 0.74 with LASSO+HICP), with LASSO selecting only 29 of 155 features.
+   multicollinearity (test R² −0.40); Ridge/LASSO/Elastic Net/Adaptive LASSO stabilise estimation
+   substantially (R² up to 0.77, Adaptive LASSO; 0.74 with LASSO+HICP lags), with plain LASSO
+   selecting only 29 of 155 features.
 2. **No model beats the naive Random Walk.** Across all horizons (h ∈ {1,3,6,12}),
    `ŷ_t = y_{t-1}` is the hardest benchmark — macroeconomic models remain above it.
 3. **Macroeconomic marginal value ≈ 0.** Only with the HICP own-lags (LASSO+HICP) is the RW

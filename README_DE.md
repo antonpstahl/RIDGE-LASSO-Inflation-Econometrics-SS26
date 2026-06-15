@@ -9,7 +9,7 @@ Prognose der deutschen HVPI-Inflationsrate aus makroökonomischen Indikatoren mi
 
 **Forschungsfrage:** Schlagen makroökonomische Prädiktoren mit Ridge/LASSO die reine
 Inflationspersistenz (Random Walk)?
-**Kernbefund:** Regularisierung behebt das massive Overfitting von OLS (Test-R² −0,40 → 0,74),
+**Kernbefund:** Regularisierung behebt das massive Overfitting von OLS (Test-R² −0,40 → 0,77, Adaptive LASSO),
 **schlägt den Random Walk aber nicht** — der Makro-Mehrwert über die Persistenz hinaus ist
 nahe null. Die Analyse demonstriert damit Regularisierung und Variablenselektion bei vielen,
 stark kollinearen Prädiktoren *und* ordnet ihren Prognosewert ehrlich gegen den naiven
@@ -108,6 +108,7 @@ sortiert nach Güte:**
 |--------|----------:|----------:|--------:|--------:|-----------:|
 | **Random Walk** | –        | **0.94** | **1.00** | 0.89 | – |
 | Lag-Modell (ADL) | –      | 1.05 | 1.12 | 0.87 | 5 |
+| Adaptive LASSO | 0.00032 | 1.38 | 1.47 | 0.77 | 50 / 155 |
 | LASSO + HVPI-Lags | 0.064  | 1.47 | 1.57 | 0.74 | 7 / 160 |
 | LASSO | 0.030              | 1.83 | 1.95 | 0.59 | 29 / 155 |
 | Elastic Net | 0.039        | 1.85 | 1.96 | 0.59 | 34 / 155 |
@@ -123,7 +124,8 @@ erreichen den RW hier knapp, schlagen ihn aber nicht nachweisbar (Diebold-Marian
 
 1. **Regularisierung behebt OLS-Overfitting.** OLS ist bei p/n ≈ 0,69 und starker
    Multikollinearität unbrauchbar (Test-R² −0,40); Ridge/LASSO/Elastic Net stabilisieren die
-   Schätzung deutlich (R² bis 0,74 mit LASSO+HVPI), LASSO selektiert dabei nur 29 von 155 Features.
+   Schätzung deutlich (R² bis 0,77 mit Adaptive LASSO; 0,74 mit LASSO+HVPI-Lags), LASSO selektiert
+   dabei nur 29 von 155 Features.
 2. **Kein Modell schlägt den naiven Random Walk.** Über alle Horizonte (h ∈ {1,3,6,12}) ist
    `ŷ_t = y_{t-1}` die härteste Messlatte — die makroökonomischen Modelle liegen darüber.
 3. **Makro-Mehrwert ≈ 0.** Erst mit den HVPI-Eigen-Lags (LASSO+HVPI) wird der RW *erreicht*,

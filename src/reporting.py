@@ -580,28 +580,32 @@ def update_readmes(ctx):
     _t0 = y_test.index[0].strftime("%Y-%m")
     _t1 = y_test.index[-1].strftime("%Y-%m")
 
-    _rw  = ctx["rmse_rw_test"]
-    _ar  = ctx["rmse_ar_test"]
-    _lp  = ctx["rmse_lasso_plus_test"]
-    _las = float(np.sqrt(ctx["mse_lasso_test"]))
-    _en  = float(np.sqrt(ctx["mse_enet_test"]))
-    _ri  = float(np.sqrt(ctx["mse_ridge_test"]))
-    _ols = float(np.sqrt(ctx["mse_ols_test"]))
-    _nz_l = ctx["n_nonzero"]
+    _rw    = ctx["rmse_rw_test"]
+    _ar    = ctx["rmse_ar_test"]
+    _alasso = ctx["rmse_alasso_test"]
+    _lp    = ctx["rmse_lasso_plus_test"]
+    _las   = float(np.sqrt(ctx["mse_lasso_test"]))
+    _en    = float(np.sqrt(ctx["mse_enet_test"]))
+    _ri    = float(np.sqrt(ctx["mse_ridge_test"]))
+    _ols   = float(np.sqrt(ctx["mse_ols_test"]))
+    _nz_l  = ctx["n_nonzero"]
 
-    lasso_plus_alpha = ctx["lasso_plus_cv"].alpha_
-    lambda_lasso     = ctx["lambda_lasso"]
-    lambda_enet      = ctx["lambda_enet"]
-    lambda_ridge     = ctx["lambda_ridge"]
-    n_nonzero_plus   = ctx["n_nonzero_plus"]
-    n_nonzero_enet   = ctx["n_nonzero_enet"]
-    r2_rw_test       = ctx["r2_rw_test"]
-    r2_ar_test       = ctx["r2_ar_test"]
-    r2_lasso_plus    = ctx["r2_lasso_plus_test"]
-    r2_lasso_test    = ctx["r2_lasso_test"]
-    r2_enet_test     = ctx["r2_enet_test"]
-    r2_ridge_test    = ctx["r2_ridge_test"]
-    r2_ols_test      = ctx["r2_ols_test"]
+    lasso_plus_alpha  = ctx["lasso_plus_cv"].alpha_
+    lambda_alasso     = ctx["alasso"].alpha_
+    lambda_lasso      = ctx["lambda_lasso"]
+    lambda_enet       = ctx["lambda_enet"]
+    lambda_ridge      = ctx["lambda_ridge"]
+    n_nonzero_plus    = ctx["n_nonzero_plus"]
+    n_nonzero_enet    = ctx["n_nonzero_enet"]
+    n_nonzero_alasso  = ctx["n_nonzero_alasso"]
+    r2_rw_test        = ctx["r2_rw_test"]
+    r2_ar_test        = ctx["r2_ar_test"]
+    r2_alasso_test    = ctx["r2_alasso_test"]
+    r2_lasso_plus     = ctx["r2_lasso_plus_test"]
+    r2_lasso_test     = ctx["r2_lasso_test"]
+    r2_enet_test      = ctx["r2_enet_test"]
+    r2_ridge_test     = ctx["r2_ridge_test"]
+    r2_ols_test       = ctx["r2_ols_test"]
 
     block_de = (
         f"Datensatz: **{_n_total} Beobachtungen** ({_d0} – {_d1}), "
@@ -613,6 +617,7 @@ def update_readmes(ctx):
         f"|--------|----------:|----------:|--------:|--------:|-----------:|\n"
         f"| **Random Walk** | –        | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | – |\n"
         f"| Lag-Modell (ADL) | –      | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | {len(AR_LAGS)} |\n"
+        f"| Adaptive LASSO | {lambda_alasso:.5f} | {_alasso:.2f} | {_alasso/_rw:.2f} | {r2_alasso_test:.2f} | {n_nonzero_alasso} / {_n_feat} |\n"
         f"| LASSO + HVPI-Lags | {lasso_plus_alpha:.3f}  | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | {n_nonzero_plus} / {_n_plus} |\n"
         f"| LASSO | {lambda_lasso:.3f}              | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | {_nz_l} / {_n_feat} |\n"
         f"| Elastic Net | {lambda_enet:.3f}        | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | {n_nonzero_enet} / {_n_feat} |\n"
@@ -637,6 +642,7 @@ def update_readmes(ctx):
         f"|-------|----------:|----------:|--------:|--------:|-----------:|\n"
         f"| **Random Walk** | –        | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | – |\n"
         f"| Lag model (ADL) | –      | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | {len(AR_LAGS)} |\n"
+        f"| Adaptive LASSO | {lambda_alasso:.5f} | {_alasso:.2f} | {_alasso/_rw:.2f} | {r2_alasso_test:.2f} | {n_nonzero_alasso} / {_n_feat} |\n"
         f"| LASSO + HICP lags | {lasso_plus_alpha:.3f}  | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | {n_nonzero_plus} / {_n_plus} |\n"
         f"| LASSO | {lambda_lasso:.3f}              | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | {_nz_l} / {_n_feat} |\n"
         f"| Elastic Net | {lambda_enet:.3f}        | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | {n_nonzero_enet} / {_n_feat} |\n"

@@ -221,8 +221,11 @@ def compute_compare_oos(oos_ctx, adap_ctx, y_oos_ref):
 
 # ── Diebold-Mariano-Tests ─────────────────────────────────────────────────────
 
-def compute_dm_tests(oos_ctx):
-    """DM-Test je Modell gegen Random Walk (HLN-korrigiert, T=36)."""
+def compute_dm_tests(oos_ctx, adap_ctx=None):
+    """DM-Test je Modell gegen Random Walk (HLN-korrigiert, T=36).
+
+    adap_ctx: optional; wenn übergeben, wird Adaptive LASSO (adaptiver RO) mitgetestet.
+    """
     oos_df    = oos_ctx["oos_df"]
     y_oos_ref = oos_ctx["y_oos_ref"]
 
@@ -231,10 +234,16 @@ def compute_dm_tests(oos_ctx):
 
     dm_records = []
     print("Diebold-Mariano-Test (Referenz: Random Walk, h=1, HLN-Korrektur, T=36)")
-    print(f"{'Modell':<15} {'DM-Stat':>9} {'p-Wert':>9} {'Signifikanz':>12}")
-    print("-" * 50)
-    for col in ["AR", "LASSO+HVPI", "LASSO", "Elastic Net", "Ridge", "OLS"]:
-        preds  = oos_df[col].reindex(y_ref.index).dropna()
+    print(f"{'Modell':<22} {'DM-Stat':>9} {'p-Wert':>9} {'Signifikanz':>12}")
+    print("-" * 57)
+
+    cols = ["AR", "LASSO+HVPI", "LASSO", "Elastic Net", "Ridge", "OLS"]
+    preds_map = {col: oos_df[col] for col in cols}
+    if adap_ctx is not None:
+        preds_map["Adaptive LASSO"] = adap_ctx["oos_alasso_adap"]
+
+    for col, preds_series in preds_map.items():
+        preds  = preds_series.reindex(y_ref.index).dropna()
         e_mod  = (preds - y_ref.loc[preds.index]).dropna()
         e_rw_a = e_rw_ro.loc[e_mod.index]
         dm, pv = diebold_mariano(e_rw_a.values, e_mod.values, h=1)
@@ -243,9 +252,9 @@ def compute_dm_tests(oos_ctx):
             "Modell": col, "DM-Stat": round(dm, 3),
             "p-Wert": round(pv, 4), "Sig.": sig,
         })
-        print(f"  {col:<13} {dm:>+9.3f} {pv:>9.4f} {sig:>12}")
+        print(f"  {col:<20} {dm:>+9.3f} {pv:>9.4f} {sig:>12}")
 
-    print("-" * 50)
+    print("-" * 57)
     print("DM > 0: Modell schlägt Random Walk (niedr. Verlust)  | * p<0.10  ** p<0.05")
     dm_df = pd.DataFrame(dm_records).set_index("Modell")
     return {"dm_df": dm_df}
