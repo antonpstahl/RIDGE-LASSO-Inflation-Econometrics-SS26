@@ -80,7 +80,10 @@ def fit_all_models(X, y, splits, tscv=None):
     lasso_plus_cv = LassoCV(
         alphas=ALPHAS_LASSO, cv=tscv, max_iter=10000, n_jobs=-1
     )
-    lasso_plus_cv.fit(X_plus_train_s, y_plus_train)
+    # Koordinatenabstieg auf der erweiterten Feature-Matrix löst bei Near-Singularität
+    # benigne FP-Ausnahmen aus (matmul overflow/invalid); lokal unterdrückt.
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        lasso_plus_cv.fit(X_plus_train_s, y_plus_train)
     y_pred_lasso_plus_test = pd.Series(
         lasso_plus_cv.predict(X_plus_test_s), index=X_plus_test.index
     )

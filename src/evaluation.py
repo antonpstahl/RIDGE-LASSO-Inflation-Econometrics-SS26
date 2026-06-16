@@ -22,7 +22,7 @@ from .models import AdaptiveLasso
 
 # ── Rolling-Origin ────────────────────────────────────────────────────────────
 
-def rolling_origin(model_factory, X, y, start):
+def rolling_origin(model_factory, X, y, start, desc="", suppress_fp=False, cache_path=None):
     """Expanding-Window Rolling-Origin Prognose.
 
     Parameters
@@ -30,14 +30,49 @@ def rolling_origin(model_factory, X, y, start):
     model_factory : callable, () → sklearn estimator
     X, y          : vollstaendige Feature-Matrix / Zielvariable
     start         : erster OOS-Index (trainiert auf [0:start], prognostiziert [start])
+    desc          : Bezeichnung fuer tqdm-Fortschrittsanzeige
+    suppress_fp   : bool; unterdrückt FP-Ausnahmen (divide/over/invalid) lokal je
+                    fit()-Aufruf — nur fuer LASSO-Modelle auf erweiterter Feature-Matrix.
+    cache_path    : pathlib.Path oder str; Pfad fuer Zwischen-CSV-Caching der OOS-Reihe.
+                    Bei Neustart werden bereits berechnete Punkte wiederverwendet.
     """
+    # Zwischen-Caching: bereits berechnete Prognosen wiederverwenden
+    preds_cache: dict = {}
+    if cache_path is not None:
+        cp = pathlib.Path(cache_path)
+        if cp.exists():
+            cached = pd.read_csv(cp, index_col=0, parse_dates=True).squeeze()
+            preds_cache = dict(zip(cached.index, cached.values))
+
+    try:
+        from tqdm.auto import tqdm as _tqdm
+        _iter = _tqdm(range(start, len(y)), desc=desc or "Rolling-Origin", leave=False)
+    except ImportError:
+        _iter = range(start, len(y))
+
     preds, idx = [], []
-    for t in range(start, len(y)):
+    for t in _iter:
+        t_idx = y.index[t]
+        if t_idx in preds_cache:
+            preds.append(preds_cache[t_idx])
+            idx.append(t_idx)
+            continue
         Xtr, ytr = X.iloc[:t], y.iloc[:t]
         sc = StandardScaler().fit(Xtr)
-        m  = model_factory().fit(sc.transform(Xtr), ytr)
-        preds.append(m.predict(sc.transform(X.iloc[[t]]))[0])
-        idx.append(y.index[t])
+        if suppress_fp:
+            # LASSO-Koordinatenabstieg loesst auf erweiterter Feature-Matrix (LASSO+HVPI)
+            # benigne FP-Ausnahmen aus (matmul overflow/invalid); lokal unterdrückt.
+            with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+                m    = model_factory().fit(sc.transform(Xtr), ytr)
+                pred = m.predict(sc.transform(X.iloc[[t]]))[0]
+        else:
+            m    = model_factory().fit(sc.transform(Xtr), ytr)
+            pred = m.predict(sc.transform(X.iloc[[t]]))[0]
+        preds.append(pred)
+        idx.append(t_idx)
+        if cache_path is not None:
+            pd.Series(preds, index=idx).to_csv(pathlib.Path(cache_path))
+
     return pd.Series(preds, index=idx)
 
 
@@ -83,34 +118,35 @@ def compute_oos_predictions(models_ctx, splits, X, y, train_end):
 
     # Lag-Modell (ADL)
     oos_ar = rolling_origin(
-        lambda: LinearRegression(), X_ar, y_ar, start_ar
+        lambda: LinearRegression(), X_ar, y_ar, start_ar, desc="AR",
     ).rename("AR")
 
     # OLS
     oos_ols = rolling_origin(
-        lambda: LinearRegression(), X, y, train_end
+        lambda: LinearRegression(), X, y, train_end, desc="OLS",
     ).rename("OLS")
 
     # Ridge (festes λ)
     oos_ridge = rolling_origin(
-        lambda: Ridge(alpha=lambda_ridge), X, y, train_end
+        lambda: Ridge(alpha=lambda_ridge), X, y, train_end, desc="Ridge",
     ).rename("Ridge")
 
     # LASSO (festes λ)
     oos_lasso = rolling_origin(
-        lambda: Lasso(alpha=lambda_lasso, max_iter=10000), X, y, train_end
+        lambda: Lasso(alpha=lambda_lasso, max_iter=10000), X, y, train_end, desc="LASSO",
     ).rename("LASSO")
 
     # Elastic Net (feste Hyperparameter)
     oos_enet = rolling_origin(
         lambda: ElasticNet(alpha=lambda_enet, l1_ratio=l1_ratio_enet, max_iter=10000),
-        X, y, train_end,
+        X, y, train_end, desc="Elastic Net",
     ).rename("Elastic Net")
 
-    # LASSO+HVPI (festes λ)
+    # LASSO+HVPI (festes λ); suppress_fp=True wegen benignen FP-Ausnahmen im Koordinatenabstieg
     oos_lasso_plus = rolling_origin(
         lambda: Lasso(alpha=lasso_plus_alpha, max_iter=10000),
         X_plus, y_plus, start_plus,
+        desc="LASSO+HVPI", suppress_fp=True,
     ).rename("LASSO+HVPI")
 
     print("Rolling-Origin-Prognosen berechnet (alle Modelle inkl. Elastic Net).")
@@ -152,17 +188,17 @@ def compute_adaptive_oos(X, y, splits, train_end, tscv_inner=None):
     start_plus = splits["start_plus"]
 
     print("Starte adaptive Rolling-Origin (λ je Origin via CV) …")
-    print("(Laufzeit ~10–20 min — Fortschritt wird nicht angezeigt)")
+    print("(Laufzeit ~10–20 min — Fortschritt via tqdm je Modell)")
 
     oos_lasso_adap = rolling_origin(
         lambda: LassoCV(
             alphas=ALPHAS_LASSO_INNER, cv=tscv_inner, max_iter=10000, n_jobs=-1
-        ), X, y, train_end
+        ), X, y, train_end, desc="LASSO (adapt.)",
     ).rename("LASSO (adapt.)")
 
     oos_ridge_adap = rolling_origin(
         lambda: RidgeCV(alphas=ALPHAS_RIDGE_INNER, cv=tscv_inner),
-        X, y, train_end,
+        X, y, train_end, desc="Ridge (adapt.)",
     ).rename("Ridge (adapt.)")
 
     oos_enet_adap = rolling_origin(
@@ -170,19 +206,21 @@ def compute_adaptive_oos(X, y, splits, train_end, tscv_inner=None):
             l1_ratio=L1_RATIOS_ENET_INNER,
             alphas=ALPHAS_LASSO_INNER,
             cv=tscv_inner, max_iter=10000, n_jobs=-1,
-        ), X, y, train_end
+        ), X, y, train_end, desc="Elastic Net (adapt.)",
     ).rename("Elastic Net (adapt.)")
 
+    # suppress_fp=True wegen benignen FP-Ausnahmen im LASSO-Koordinatenabstieg (HVPI-Matrix)
     oos_lasso_plus_adap = rolling_origin(
         lambda: LassoCV(
             alphas=ALPHAS_LASSO_INNER, cv=tscv_inner, max_iter=10000, n_jobs=-1
-        ), X_plus, y_plus, start_plus
+        ), X_plus, y_plus, start_plus,
+        desc="LASSO+HVPI (adapt.)", suppress_fp=True,
     ).rename("LASSO+HVPI (adapt.)")
 
     oos_alasso_adap = rolling_origin(
         lambda: AdaptiveLasso(
             alphas=ALPHAS_LASSO_INNER, cv=tscv_inner, max_iter=10000
-        ), X, y, train_end
+        ), X, y, train_end, desc="Adaptive LASSO (adapt.)",
     ).rename("Adaptive LASSO (adapt.)")
 
     print("Fertig.")

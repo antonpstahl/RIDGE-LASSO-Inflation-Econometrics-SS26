@@ -94,8 +94,8 @@ def setup_environment():
     import matplotlib.pyplot as plt
 
     np.random.seed(SEED)
-    # Benigne FPE-Flags des NumPy/BLAS-Builds beim Koordinatenabstieg
-    np.seterr(divide="ignore", over="ignore", invalid="ignore")
+    # FP-Ausnahmen werden *lokal* mit np.errstate unterdrückt (training.py,
+    # evaluation.py: rolling_origin mit suppress_fp=True), nicht global.
     plt.rcParams.update({
         "figure.dpi":        120,
         "savefig.dpi":       300,
