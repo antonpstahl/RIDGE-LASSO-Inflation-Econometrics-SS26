@@ -1,0 +1,19 @@
+\begin{table}
+\caption{Einzelfenster-Inferenz: Block-Bootstrap 95\%-Konfidenzintervall für den RMSE (zirkulärer Block-Bootstrap, $l=6\approx\sqrt{T}$, $B=2\,000$) und Diebold-Mariano-Test (HLN-Korrektur, $h=1$) je Modell gegen den Random Walk, T=36 Testpunkte. DM $> 0$: Modell schlägt RW. Signifikanz: * $p<0{,}10$, ** $p<0{,}05$.}
+\label{tab:inferenz}
+\begin{tabular}{lrlrrl}
+\toprule
+ & Test RMSE & 95\%-KI (Bootstrap) & DM-Stat. & $p$-Wert & Sig. \\
+Modell &  &  &  &  &  \\
+\midrule
+Random Walk & 0.9398 & [0.746, 1.098] & – & – & – \\
+Lag-Modell (ADL) & 1.0542 & [0.764, 1.317] & -0.8900 & 0.3795 & n.s. \\
+OLS & 3.4037 & [2.192, 4.377] & -3.4070 & 0.0017 & ** \\
+Ridge & 1.9571 & [1.462, 2.386] & -4.1670 & 0.0002 & ** \\
+LASSO & 1.8312 & [1.505, 2.164] & -4.7610 & 0.0000 & ** \\
+Elastic Net & 1.8454 & [1.512, 2.164] & -4.8160 & 0.0000 & ** \\
+LASSO+HVPI & 1.4745 & [0.891, 1.922] & -2.8380 & 0.0075 & ** \\
+Adaptive LASSO & 1.3769 & [0.994, 1.770] & -1.9830 & 0.0553 & * \\
+\bottomrule
+\end{tabular}
+\end{table}

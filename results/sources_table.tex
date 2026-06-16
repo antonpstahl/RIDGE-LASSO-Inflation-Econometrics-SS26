@@ -1,0 +1,44 @@
+\begin{table}
+\caption{Datenquellen: Variable, Quelle, Datensatz-Code und Saisonbereinigung (SA = saisonbereinigt, NSA = nicht bereinigt).}
+\label{tab:quellen}
+\begin{tabular}{llllll}
+\toprule
+Variable & Quelle & Datensatz & Code / Filter & Freq. & SA \\
+\midrule
+HVPI & ECB SDW & ICP/M.DE.N.000000.4.INX & DE, 000000 (gesamt), Index 2015=100 & M & – \\
+IP\_Verarbeitendes\_Gew & Eurostat & sts\_inpr\_m & nace\_r2=C, unit=I15, geo=DE & M & NSA \\
+IP\_Nahrungs\_Genuss & Eurostat & sts\_inpr\_m & nace\_r2=C10-C12, unit=I15, geo=DE & M & NSA \\
+IP\_Textil\_Leder & Eurostat & sts\_inpr\_m & nace\_r2=C13-C15, unit=I15, geo=DE & M & NSA \\
+IP\_Holz\_Papier\_Druck & Eurostat & sts\_inpr\_m & nace\_r2=C16-C18, unit=I15, geo=DE & M & NSA \\
+IP\_Mineraloel & Eurostat & sts\_inpr\_m & nace\_r2=C19, unit=I15, geo=DE & M & NSA \\
+IP\_Chemie & Eurostat & sts\_inpr\_m & nace\_r2=C20, unit=I15, geo=DE & M & NSA \\
+IP\_Pharma & Eurostat & sts\_inpr\_m & nace\_r2=C21, unit=I15, geo=DE & M & NSA \\
+IP\_Metall\_Grundstoffe & Eurostat & sts\_inpr\_m & nace\_r2=C24, unit=I15, geo=DE & M & NSA \\
+IP\_Metallerzeugnisse & Eurostat & sts\_inpr\_m & nace\_r2=C25, unit=I15, geo=DE & M & NSA \\
+IP\_DV\_Elektronik & Eurostat & sts\_inpr\_m & nace\_r2=C26, unit=I15, geo=DE & M & NSA \\
+IP\_Elektrisch & Eurostat & sts\_inpr\_m & nace\_r2=C27, unit=I15, geo=DE & M & NSA \\
+IP\_Maschinenbau & Eurostat & sts\_inpr\_m & nace\_r2=C28, unit=I15, geo=DE & M & NSA \\
+IP\_Kfz & Eurostat & sts\_inpr\_m & nace\_r2=C29, unit=I15, geo=DE & M & NSA \\
+IP\_Sonstiger\_Fahrzeug & Eurostat & sts\_inpr\_m & nace\_r2=C30, unit=I15, geo=DE & M & NSA \\
+IP\_Energie & Eurostat & sts\_inpr\_m & nace\_r2=D, unit=I15, geo=DE & M & NSA \\
+BS\_Konjunkturklima & Eurostat & ei\_bsin\_m\_r2 & indic=BS-ICI, geo=DE & M & SA \\
+BS\_Produktionserwart & Eurostat & ei\_bsin\_m\_r2 & indic=BS-IEME, geo=DE & M & SA \\
+BS\_Produktionstendenz & Eurostat & ei\_bsin\_m\_r2 & indic=BS-IPT, geo=DE & M & SA \\
+BS\_Absatzpreise & Eurostat & ei\_bsin\_m\_r2 & indic=BS-ISFP, geo=DE & M & SA \\
+BS\_Auftragsbestand & Eurostat & ei\_bsin\_m\_r2 & indic=BS-IOB, geo=DE & M & SA \\
+PPI\_Gesamt & Eurostat & sts\_inppd\_m & nace\_r2=B-E36, unit=I15, geo=DE & M & NSA \\
+PPI\_Konsumgueter & Eurostat & sts\_inppd\_m & nace\_r2=MIG\_COG, unit=I15, geo=DE & M & NSA \\
+PPI\_Vorleistungen & Eurostat & sts\_inppd\_m & nace\_r2=MIG\_ING, unit=I15, geo=DE & M & NSA \\
+ALQ\_Gesamt & Eurostat & une\_rt\_m & sex=T, age=TOTAL, unit=PC\_ACT, geo=DE & M & SA \\
+ALQ\_Maenner & Eurostat & une\_rt\_m & sex=M, age=TOTAL, unit=PC\_ACT, geo=DE & M & SA \\
+ALQ\_Frauen & Eurostat & une\_rt\_m & sex=F, age=TOTAL, unit=PC\_ACT, geo=DE & M & SA \\
+ALQ\_Kern\_Ges & Eurostat & une\_rt\_m & sex=T, age=Y25-74, unit=PC\_ACT, geo=DE & M & SA \\
+ALQ\_Kern\_M & Eurostat & une\_rt\_m & sex=M, age=Y25-74, unit=PC\_ACT, geo=DE & M & SA \\
+ALQ\_Kern\_F & Eurostat & une\_rt\_m & sex=F, age=Y25-74, unit=PC\_ACT, geo=DE & M & SA \\
+LCI\_Lohnkosten\_BN & Eurostat & lc\_lci\_r2\_q & nace\_r2=B-N, lcstruct=D1\_D4\_MD5, unit=I20, geo=DE; Q→M via ffill & Q→M & NSA \\
+LCI\_Loehne\_BN & Eurostat & lc\_lci\_r2\_q & nace\_r2=B-N, lcstruct=D11, unit=I20, geo=DE; Q→M via ffill & Q→M & NSA \\
+LCI\_Lohnkosten\_Ind & Eurostat & lc\_lci\_r2\_q & nace\_r2=B-F, lcstruct=D1\_D4\_MD5, unit=I20, geo=DE; Q→M via ffill & Q→M & NSA \\
+LCI\_Loehne\_Ind & Eurostat & lc\_lci\_r2\_q & nace\_r2=B-F, lcstruct=D11, unit=I20, geo=DE; Q→M via ffill & Q→M & NSA \\
+\bottomrule
+\end{tabular}
+\end{table}
