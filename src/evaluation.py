@@ -480,8 +480,11 @@ def compute_horizon_analysis(df_yoy, tscv=None):
         ols_h      = LinearRegression().fit(Xtr_hs, ytr_h)
         rmse_ols_h = np.sqrt(mean_squared_error(yte_h, ols_h.predict(Xte_hs)))
 
-        # Ridge mit Embargo-CV (gap=h−1 für h>1)
-        ridge_h      = RidgeCV(alphas=ALPHAS_RIDGE, cv=tscv_h).fit(Xtr_hs, ytr_h)
+        # Ridge mit Embargo-CV (gap=h−1 für h>1); scoring=neg_mean_squared_error
+        # entspricht training.py (RidgeCV mit MSE-Kriterium) → konsistente λ-Wahl
+        ridge_h      = RidgeCV(
+            alphas=ALPHAS_RIDGE, cv=tscv_h, scoring="neg_mean_squared_error"
+        ).fit(Xtr_hs, ytr_h)
         rmse_ridge_h = np.sqrt(mean_squared_error(yte_h, ridge_h.predict(Xte_hs)))
 
         # LASSO mit Embargo-CV (gap=h−1 für h>1)
@@ -491,9 +494,10 @@ def compute_horizon_analysis(df_yoy, tscv=None):
         rmse_lasso_h = np.sqrt(mean_squared_error(yte_h, lasso_h.predict(Xte_hs)))
         nsel_lasso_h = int(np.sum(lasso_h.coef_ != 0))
 
-        # Elastic Net mit Embargo-CV (gap=h−1 für h>1)
+        # Elastic Net mit Embargo-CV (gap=h−1 für h>1); L1_RATIOS_ENET entspricht
+        # training.py (identisches Grid) → konsistente λ/l1_ratio-Wahl bei h=1
         enet_h = ElasticNetCV(
-            l1_ratio=L1_RATIOS_ENET_INNER, alphas=ALPHAS_LASSO,
+            l1_ratio=L1_RATIOS_ENET, alphas=ALPHAS_LASSO,
             cv=tscv_h, max_iter=10000, n_jobs=-1,
         ).fit(Xtr_hs, ytr_h)
         rmse_enet_h = np.sqrt(mean_squared_error(yte_h, enet_h.predict(Xte_hs)))
