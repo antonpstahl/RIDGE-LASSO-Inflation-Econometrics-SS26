@@ -225,64 +225,78 @@ def fit_all_models(X, y, splits, tscv=None):
 
 
 def _build_results_table(ctx, n_feat, n_plus):
-    """Baut die Ergebnistabelle (entspricht Cell 29 im Originalnotebook)."""
+    """Baut die Ergebnistabelle (entspricht Cell 29 im Originalnotebook).
+
+    Reihenfolge: Benchmark → Mit Eigen-Lags (zentraler Vergleich) → Didaktisch.
+    Spalte 'Gruppe' macht die Zuordnung explizit; wird von reporting.py fuer
+    LaTeX-Trennlinien und README-Gruppierung genutzt.
+    """
     c = ctx
+    # Reihenfolge: [Benchmark] RW, ADL → [Mit Eigen-Lags] LASSO+HVPI → [Didaktisch] OLS, Ridge, LASSO, EN, Adaptive LASSO
     results = pd.DataFrame({
         "Modell": [
-            "Random Walk", "Lag-Modell (ADL)", "OLS", "Ridge",
-            "LASSO", "Elastic Net", "LASSO+HVPI", "Adaptive LASSO",
+            "Random Walk", "Lag-Modell (ADL)", "LASSO+HVPI",
+            "OLS", "Ridge", "LASSO", "Elastic Net", "Adaptive LASSO",
         ],
         "λ": [
-            "-", "-", "-",
-            f"{c['lambda_ridge']:.3f}", f"{c['lambda_lasso']:.5f}",
-            f"{c['lambda_enet']:.5f}",  f"{c['lasso_plus_cv'].alpha_:.5f}",
-            f"{c['alasso'].alpha_:.5f}",
+            "-", "-", f"{c['lasso_plus_cv'].alpha_:.5f}",
+            "-", f"{c['lambda_ridge']:.3f}", f"{c['lambda_lasso']:.5f}",
+            f"{c['lambda_enet']:.5f}", f"{c['alasso'].alpha_:.5f}",
         ],
         "Train MSE": [
-            "-", "-",
+            "-", "-", "-",
             round(c["mse_ols_train"], 4),   round(c["mse_ridge_train"], 4),
             round(c["mse_lasso_train"], 4), round(c["mse_enet_train"], 4),
-            "-",                             round(c["mse_alasso_train"], 4),
+            round(c["mse_alasso_train"], 4),
         ],
         "Test MSE": [
-            c["mse_rw_test"],  c["mse_ar_test"],
-            c["mse_ols_test"], c["mse_ridge_test"],
-            c["mse_lasso_test"], c["mse_enet_test"],
-            c["mse_lasso_plus_test"], c["mse_alasso_test"],
+            c["mse_rw_test"],       c["mse_ar_test"],
+            c["mse_lasso_plus_test"],
+            c["mse_ols_test"],      c["mse_ridge_test"],
+            c["mse_lasso_test"],    c["mse_enet_test"],
+            c["mse_alasso_test"],
         ],
         "Test RMSE": [
-            c["rmse_rw_test"],            c["rmse_ar_test"],
-            np.sqrt(c["mse_ols_test"]),   np.sqrt(c["mse_ridge_test"]),
+            c["rmse_rw_test"],          c["rmse_ar_test"],
+            c["rmse_lasso_plus_test"],
+            np.sqrt(c["mse_ols_test"]), np.sqrt(c["mse_ridge_test"]),
             np.sqrt(c["mse_lasso_test"]), np.sqrt(c["mse_enet_test"]),
-            c["rmse_lasso_plus_test"],    c["rmse_alasso_test"],
+            c["rmse_alasso_test"],
         ],
         "RMSE/RW": [
             1.0,
-            c["rmse_ar_test"]            / c["rmse_rw_test"],
-            np.sqrt(c["mse_ols_test"])   / c["rmse_rw_test"],
-            np.sqrt(c["mse_ridge_test"]) / c["rmse_rw_test"],
-            np.sqrt(c["mse_lasso_test"]) / c["rmse_rw_test"],
-            np.sqrt(c["mse_enet_test"])  / c["rmse_rw_test"],
-            c["rmse_lasso_plus_test"]    / c["rmse_rw_test"],
-            c["rmse_alasso_test"]        / c["rmse_rw_test"],
+            c["rmse_ar_test"]              / c["rmse_rw_test"],
+            c["rmse_lasso_plus_test"]      / c["rmse_rw_test"],
+            np.sqrt(c["mse_ols_test"])     / c["rmse_rw_test"],
+            np.sqrt(c["mse_ridge_test"])   / c["rmse_rw_test"],
+            np.sqrt(c["mse_lasso_test"])   / c["rmse_rw_test"],
+            np.sqrt(c["mse_enet_test"])    / c["rmse_rw_test"],
+            c["rmse_alasso_test"]          / c["rmse_rw_test"],
         ],
         "Test R²": [
-            c["r2_rw_test"],    c["r2_ar_test"],
-            c["r2_ols_test"],   c["r2_ridge_test"],
-            c["r2_lasso_test"], c["r2_enet_test"],
-            c["r2_lasso_plus_test"], c["r2_alasso_test"],
+            c["r2_rw_test"],       c["r2_ar_test"],
+            c["r2_lasso_plus_test"],
+            c["r2_ols_test"],      c["r2_ridge_test"],
+            c["r2_lasso_test"],    c["r2_enet_test"],
+            c["r2_alasso_test"],
         ],
         "Nicht-Null-Koeff.": [
             "-", str(len(AR_LAGS)),
+            str(c["n_nonzero_plus"]) + f" / {n_plus}",
             str(int(np.sum(c["ols"].coef_ != 0))),
             str(len(c["ridge_cv"].coef_)),
             str(c["n_nonzero"]),
             str(c["n_nonzero_enet"]),
-            str(c["n_nonzero_plus"]) + f" / {n_plus}",
             str(c["n_nonzero_alasso"]),
         ],
     }).set_index("Modell")
 
     for col in ["Test MSE", "Test RMSE", "RMSE/RW", "Test R²"]:
         results[col] = results[col].round(4)
+
+    # Gruppenkennung: Benchmark / Mit Eigen-Lags (zentraler Vergleich) / Didaktisch
+    results.insert(0, "Gruppe", [
+        "Benchmark", "Benchmark", "Mit Eigen-Lags",
+        "Didaktisch", "Didaktisch", "Didaktisch", "Didaktisch", "Didaktisch",
+    ])
     return results

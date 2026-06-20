@@ -181,31 +181,54 @@ def fig_05_mse_comparison(ctx):
     mse_enet_test  = ctx["mse_enet_test"]
     mse_lasso_plus = ctx["mse_lasso_plus_test"]
 
-    all_models = ["RW", "ADL", "OLS", "Ridge", "LASSO", "Elastic Net", "LASSO+HVPI"]
-    mse_vals   = [mse_rw_test, mse_ar_test, mse_ols_test, mse_ridge_test,
-                  mse_lasso_test, mse_enet_test, mse_lasso_plus]
+    # Reihenfolge spiegelt Gruppierung: Benchmark → Mit Eigen-Lags → Didaktisch
+    all_models = ["RW", "ADL", "LASSO+HVPI", "OLS", "Ridge", "LASSO", "Elastic Net"]
+    mse_vals   = [mse_rw_test, mse_ar_test, mse_lasso_plus,
+                  mse_ols_test, mse_ridge_test, mse_lasso_test, mse_enet_test]
     rmse_vals  = [np.sqrt(v) for v in mse_vals]
-    colors_bar = ["#9E9E9E", "#795548", COLORS["OLS"], COLORS["Ridge"],
-                  COLORS["LASSO"], COLORS["ElasticNet"], "#9C27B0"]
+    colors_bar = ["#9E9E9E", "#795548", "#9C27B0",
+                  COLORS["OLS"], COLORS["Ridge"], COLORS["LASSO"], COLORS["ElasticNet"]]
+    # Didaktisch (Indizes 3-6): schraffierten Balken, leicht transparent
+    hatches    = ["", "", "", "///", "///", "///", "///"]
+    alphas     = [0.9, 0.9, 0.9, 0.55, 0.55, 0.55, 0.55]
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5))
     x = np.arange(len(all_models)); width = 0.5
 
-    axes[0].bar(x, mse_vals, width, color=colors_bar, alpha=0.85)
-    axes[0].set_xticks(x)
-    axes[0].set_xticklabels(all_models, rotation=20, ha="right")
-    axes[0].set_title("Test MSE: Benchmarks vs. Regularisierungsmodelle")
-    axes[0].set_ylabel("Mean Squared Error")
+    for ax, vals, title, ylabel in [
+        (axes[0], mse_vals,  "Test MSE: Gruppen im Vergleich",             "Mean Squared Error"),
+        (axes[1], rmse_vals, "Test-RMSE (Prozentpunkte Inflationsrate)",    "RMSE (%)"),
+    ]:
+        for xi, (val, col, hatch, alpha) in enumerate(
+            zip(vals, colors_bar, hatches, alphas)
+        ):
+            ax.bar(xi, val, width, color=col, alpha=alpha, hatch=hatch,
+                   edgecolor="white" if hatch == "" else col)
+        # Trennlinie zwischen LASSO+HVPI und OLS (nach Index 2)
+        ax.axvline(2.5, color="black", linewidth=0.8, linestyle="--", alpha=0.4)
+        ax.set_xticks(x)
+        ax.set_xticklabels(all_models, rotation=20, ha="right")
+        ax.set_title(title)
+        ax.set_ylabel(ylabel)
 
-    bars = axes[1].bar(x, rmse_vals, width, color=colors_bar, alpha=0.85)
-    axes[1].set_xticks(x)
-    axes[1].set_xticklabels(all_models, rotation=20, ha="right")
-    axes[1].set_title("Test-RMSE (Prozentpunkte Inflationsrate)")
-    axes[1].set_ylabel("RMSE (%)")
-    for bar, val in zip(bars, rmse_vals):
-        axes[1].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.05,
-                     f"{val:.3f}", ha="center", fontsize=9)
+    # RMSE-Wert-Label nur auf rechtem Panel
+    for xi, val in enumerate(rmse_vals):
+        axes[1].text(xi, val + 0.05, f"{val:.3f}", ha="center", fontsize=8)
 
+    # Legende
+    from matplotlib.patches import Patch as _Patch
+    legend_handles = [
+        _Patch(color="#9E9E9E",          label="Benchmark (RW, ADL)"),
+        _Patch(color="#9C27B0",          label="Mit Eigen-Lags / Zentraler Vergleich (LASSO+HVPI)"),
+        _Patch(color="gray", alpha=0.55, hatch="///",
+               label="Didaktisch – nur Makro, ohne Eigen-Lags (OLS, Ridge, LASSO, EN)"),
+    ]
+    axes[1].legend(handles=legend_handles, fontsize=8, loc="upper right")
+
+    plt.suptitle(
+        "Modellvergleich nach Gruppen · Trennlinie: Benchmark/Zentraler Vergleich | Didaktisch",
+        fontsize=10, y=1.01,
+    )
     plt.tight_layout()
     _save("fig_05_mse_vergleich.png")
     plt.show()
@@ -434,18 +457,27 @@ def export_results_table(results, y_test):
     _t0_tex = f"{_MON_DE[y_test.index[0].month]}~{y_test.index[0].year}"
     _t1_tex = f"{_MON_DE[y_test.index[-1].month]}~{y_test.index[-1].year}"
 
-    results_export = results.rename(columns={
+    # Drop Gruppe column for LaTeX body (grouping shown via \midrule separators)
+    results_tex = results.drop(columns=["Gruppe"], errors="ignore").rename(columns={
         "Test R²":           r"Test $R^2$",
         "Nicht-Null-Koeff.": r"Koeff.$\neq$0",
     })
-    latex_results = results_export.to_latex(
+    latex_results = results_tex.to_latex(
         float_format="%.4f", escape=False,
         caption=(
-            "Prognosemodelle im Vergleich: mittlerer RMSE, relatives RMSE (RMSE/RW) "
-            f"und $R^2$ im Testset ({_t0_tex}--{_t1_tex})."
+            r"Prognosemodelle im Vergleich: mittlerer RMSE, relatives RMSE (RMSE/RW) "
+            f"und $R^2$ im Testset ({_t0_tex}--{_t1_tex}). "
+            r"\emph{Benchmark}: Random Walk und Lag-Modell (ADL, nur HVPI-Eigen-Lags). "
+            r"\emph{Zentraler Vergleich}: LASSO+HVPI (Eigen-Lags + Makro) — "
+            r"ökonomisch sauber, da \emph{ceteris paribus} bzgl.\ Eigen-Lags. "
+            r"\emph{Didaktisch}: OLS–Adaptive LASSO ohne Eigen-Lags "
+            r"(strukturell benachteiligt, zeigen Regularisierung vs.\ OLS-Overfitting)."
         ),
         label="tab:ergebnisse",
     )
+    # Insert \midrule between Benchmark / Mit Eigen-Lags / Didaktisch
+    latex_results = _insert_group_midrules(latex_results, after_rows={1, 2})
+
     with open("results/results_table.tex", "w") as f:
         f.write(latex_results)
     print("results/results_table.tex gespeichert.")
@@ -794,18 +826,28 @@ def update_readmes(ctx):
         f"Datensatz: **{_n_total} Beobachtungen** ({_d0} – {_d1}), "
         f"davon **{_n_train} Training / {TEST_MONTHS} Test**\n"
         f"(Testfenster {_t0} – {_t1}), **{_n_feat} Features**.\n\n"
-        f"**Testfenster (fester chronologischer Split), RMSE in Prozentpunkten der Inflationsrate,\n"
-        f"sortiert nach Güte (Test = DM (nicht-geschachtelt) oder CW (geschachtelt, Clark & West 2007); n.s. = nicht signifikant):**\n\n"
+        f"**Testfenster (fester chronologischer Split), RMSE in Prozentpunkten der Inflationsrate.**\n"
+        f"Test = DM (nicht-geschachtelt) oder CW (geschachtelt, Clark & West 2007); n.s. = nicht signifikant.\n\n"
         f"| Modell | λ | Test-RMSE | RMSE/RW | Test-R² | Test | Koeff. ≠ 0 |\n"
         f"|--------|----------:|----------:|--------:|--------:|-----:|-----------:|\n"
-        f"| **Random Walk** | –        | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | – | – |\n"
-        f"| Lag-Modell (ADL) | –      | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag-Modell (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| *— Benchmark —* | | | | | | |\n"
+        f"| **Random Walk** | – | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | – | – |\n"
+        f"| Lag-Modell (ADL) | – | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag-Modell (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| *— Zentraler Vergleich: Eigen-Lags + Makro (ökonomisch sauber, ceteris paribus) —* | | | | | | |\n"
+        f"| LASSO + HVPI-Lags | {lasso_plus_alpha:.3f} | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
+        f"| *— Didaktisch: nur Makro, ohne Eigen-Lags (strukturell benachteiligt) —* | | | | | | |\n"
         f"| Adaptive LASSO | {lambda_alasso:.5f} | {_alasso:.2f} | {_alasso/_rw:.2f} | {r2_alasso_test:.2f} | DM {_sig('Adaptive LASSO') or 'n.s.'} | {n_nonzero_alasso} / {_n_feat} |\n"
-        f"| LASSO + HVPI-Lags | {lasso_plus_alpha:.3f}  | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
-        f"| LASSO | {lambda_lasso:.3f}              | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | DM {_sig('LASSO') or 'n.s.'} | {_nz_l} / {_n_feat} |\n"
-        f"| Elastic Net | {lambda_enet:.3f}        | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
-        f"| Ridge | {lambda_ridge:.1f}               | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
-        f"| OLS | –                    | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
+        f"| LASSO | {lambda_lasso:.3f} | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | DM {_sig('LASSO') or 'n.s.'} | {_nz_l} / {_n_feat} |\n"
+        f"| Elastic Net | {lambda_enet:.3f} | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
+        f"| Ridge | {lambda_ridge:.1f} | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
+        f"| OLS | – | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
+        f"**Zentraler Befund:** Lag-Modell (ADL, nur Eigen-Lags) RMSE/RW = {_ar/_rw:.2f} · "
+        f"LASSO+HVPI (Eigen-Lags + Makro) RMSE/RW = {_lp/_rw:.2f} → "
+        f"Makro-Mehrwert über die Persistenz hinaus ≈ 0 (ceteris paribus).\n"
+        f"Die reinen Makro-Modelle (didaktischer Teil) fehlt der stärkste Einzelprädiktor (HVPI-Lag) — "
+        f"ihr Abschneiden (RMSE/RW ≥ {min(_alasso/_rw, _las/_rw, _en/_rw, _ri/_rw):.2f}) "
+        f"illustriert den Nutzen von Regularisierung vs. OLS-Overfitting, "
+        f"ist aber **kein fairer Vergleich gegen den RW**.\n\n"
         f"Inferenztests (T={TEST_MONTHS}): DM = Diebold-Mariano (HLN-korr., zweiseitig) für reine Makro-Modelle; "
         f"CW = Clark-West (2007, einseitig) für Lag-Modell und LASSO+HVPI (geschachtelt in RW). "
         f"Kein Modell schlägt den RW signifikant (geringe Power bei T={TEST_MONTHS}). Block-Bootstrap-KI: `results/inference_table.csv`.\n"
@@ -824,18 +866,27 @@ def update_readmes(ctx):
         f"Dataset: **{_n_total} observations** ({_d0} – {_d1}), "
         f"of which **{_n_train} training / {TEST_MONTHS} test**\n"
         f"(test window {_t0} – {_t1}), **{_n_feat} features**.\n\n"
-        f"**Test window (fixed chronological split), RMSE in percentage points of the inflation rate,\n"
-        f"sorted by performance (Test = DM (non-nested) or CW (nested, Clark & West 2007); n.s. = not significant):**\n\n"
+        f"**Test window (fixed chronological split), RMSE in percentage points of the inflation rate.**\n"
+        f"Test = DM (non-nested) or CW (nested, Clark & West 2007); n.s. = not significant.\n\n"
         f"| Model | λ | Test RMSE | RMSE/RW | Test R² | Test | Coeff. ≠ 0 |\n"
         f"|-------|----------:|----------:|--------:|--------:|-----:|-----------:|\n"
-        f"| **Random Walk** | –        | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | – | – |\n"
-        f"| Lag model (ADL) | –      | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag-Modell (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| *— Benchmark —* | | | | | | |\n"
+        f"| **Random Walk** | – | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | – | – |\n"
+        f"| Lag model (ADL) | – | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag-Modell (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| *— Central comparison: own lags + macro (economically clean, ceteris paribus) —* | | | | | | |\n"
+        f"| LASSO + HICP lags | {lasso_plus_alpha:.3f} | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
+        f"| *— Didactic: macro only, no own lags (structurally disadvantaged) —* | | | | | | |\n"
         f"| Adaptive LASSO | {lambda_alasso:.5f} | {_alasso:.2f} | {_alasso/_rw:.2f} | {r2_alasso_test:.2f} | DM {_sig('Adaptive LASSO') or 'n.s.'} | {n_nonzero_alasso} / {_n_feat} |\n"
-        f"| LASSO + HICP lags | {lasso_plus_alpha:.3f}  | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
-        f"| LASSO | {lambda_lasso:.3f}              | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | DM {_sig('LASSO') or 'n.s.'} | {_nz_l} / {_n_feat} |\n"
-        f"| Elastic Net | {lambda_enet:.3f}        | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
-        f"| Ridge | {lambda_ridge:.1f}               | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
-        f"| OLS | –                    | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
+        f"| LASSO | {lambda_lasso:.3f} | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | DM {_sig('LASSO') or 'n.s.'} | {_nz_l} / {_n_feat} |\n"
+        f"| Elastic Net | {lambda_enet:.3f} | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
+        f"| Ridge | {lambda_ridge:.1f} | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
+        f"| OLS | – | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
+        f"**Central finding:** Lag model (ADL, own lags only) RMSE/RW = {_ar/_rw:.2f} · "
+        f"LASSO+HICP (own lags + macro) RMSE/RW = {_lp/_rw:.2f} → "
+        f"macro value-added beyond persistence ≈ 0 (ceteris paribus).\n"
+        f"The pure macro models (didactic group) lack the strongest single predictor (HICP lag) — "
+        f"their performance (RMSE/RW ≥ {min(_alasso/_rw, _las/_rw, _en/_rw, _ri/_rw):.2f}) "
+        f"illustrates regularization vs. OLS overfitting but is **not a fair race against the RW**.\n\n"
         f"Inference tests (T={TEST_MONTHS}): DM = Diebold-Mariano (HLN-corrected, two-sided) for pure macro models; "
         f"CW = Clark-West (2007, one-sided) for lag model and LASSO+HICP (nested within RW). "
         f"No model beats the RW significantly (low power at T={TEST_MONTHS}). Block-bootstrap CIs: `results/inference_table.csv`.\n"
@@ -888,24 +939,41 @@ def print_summary(ctx):
     print(f"Zeitraum:   {y.index[0].strftime('%Y-%m')} – {y.index[-1].strftime('%Y-%m')}")
     print(f"Test-Split: {len(y_test)} Monate (chronologisch)")
     print()
-    print(f"{'Modell':<14} {'Test-RMSE':>10} {'RMSE/RW':>9} {'Test-R²':>10} {'Koeff.≠0':>10}")
-    print("-" * 58)
+    print(f"{'Modell':<16} {'Test-RMSE':>10} {'RMSE/RW':>9} {'Test-R²':>10} {'Koeff.≠0':>10}")
 
     rmse_rw = ctx["rmse_rw_test"]
-    for name, rmse_val, r2_val, nz in [
-        ("Random Walk",  ctx["rmse_rw_test"],              ctx["r2_rw_test"],    "-"),
-        ("ADL",          ctx["rmse_ar_test"],              ctx["r2_ar_test"],    str(len(AR_LAGS))),
-        ("OLS",          np.sqrt(ctx["mse_ols_test"]),     ctx["r2_ols_test"],   str(int(np.sum(ctx["ols"].coef_ != 0)))),
-        ("Ridge",        np.sqrt(ctx["mse_ridge_test"]),   ctx["r2_ridge_test"], str(len(ctx["ridge_cv"].coef_))),
-        ("LASSO",        np.sqrt(ctx["mse_lasso_test"]),   ctx["r2_lasso_test"], str(ctx["n_nonzero"])),
-        ("Elastic Net",  np.sqrt(ctx["mse_enet_test"]),    ctx["r2_enet_test"],  str(ctx["n_nonzero_enet"])),
-        ("LASSO+HVPI",   ctx["rmse_lasso_plus_test"],      ctx["r2_lasso_plus_test"], str(ctx["n_nonzero_plus"])),
-        ("Adapt. LASSO", ctx["rmse_alasso_test"],          ctx["r2_alasso_test"], str(ctx["n_nonzero_alasso"])),
-    ]:
-        rel = "1.000 (Ref)" if name == "Random Walk" else f"{rmse_val/rmse_rw:.3f}"
-        print(f"{name:<14} {rmse_val:>10.4f} {rel:>9} {r2_val:>10.4f} {nz:>10}")
-    print("=" * 75)
 
+    _groups = [
+        ("── Benchmark ──────────────────────────────────────────────────────", [
+            ("Random Walk",  ctx["rmse_rw_test"],            ctx["r2_rw_test"],        "-"),
+            ("ADL",          ctx["rmse_ar_test"],            ctx["r2_ar_test"],        str(len(AR_LAGS))),
+        ]),
+        ("── Zentraler Vergleich: Eigen-Lags + Makro (ceteris paribus) ─────", [
+            ("LASSO+HVPI",   ctx["rmse_lasso_plus_test"],    ctx["r2_lasso_plus_test"], str(ctx["n_nonzero_plus"])),
+        ]),
+        ("── Didaktisch: nur Makro, ohne Eigen-Lags (strukturell benacht.) ──", [
+            ("OLS",          np.sqrt(ctx["mse_ols_test"]),   ctx["r2_ols_test"],       str(int(np.sum(ctx["ols"].coef_ != 0)))),
+            ("Ridge",        np.sqrt(ctx["mse_ridge_test"]), ctx["r2_ridge_test"],     str(len(ctx["ridge_cv"].coef_))),
+            ("LASSO",        np.sqrt(ctx["mse_lasso_test"]), ctx["r2_lasso_test"],     str(ctx["n_nonzero"])),
+            ("Elastic Net",  np.sqrt(ctx["mse_enet_test"]),  ctx["r2_enet_test"],      str(ctx["n_nonzero_enet"])),
+            ("Adapt. LASSO", ctx["rmse_alasso_test"],        ctx["r2_alasso_test"],    str(ctx["n_nonzero_alasso"])),
+        ]),
+    ]
+
+    for group_label, rows in _groups:
+        print(f"\n{group_label}")
+        print("-" * 75)
+        for name, rmse_val, r2_val, nz in rows:
+            rel = "1.000 (Ref)" if name == "Random Walk" else f"{rmse_val/rmse_rw:.3f}"
+            print(f"{name:<16} {rmse_val:>10.4f} {rel:>9} {r2_val:>10.4f} {nz:>10}")
+
+    print("\n" + "=" * 75)
+    _ar  = ctx["rmse_ar_test"]
+    _lp  = ctx["rmse_lasso_plus_test"]
+    print(f"\nZentraler Befund (ceteris paribus):")
+    print(f"  ADL (nur Eigen-Lags):       RMSE/RW = {_ar/rmse_rw:.3f}")
+    print(f"  LASSO+HVPI (Eigen-Lags + Makro): RMSE/RW = {_lp/rmse_rw:.3f}")
+    print(f"  → Makro-Mehrwert über Persistenz hinaus ≈ {(_lp - _ar)/rmse_rw:+.3f} (RMSE/RW)")
     best = results["Test RMSE"].astype(float).idxmin()
     print(f"\nBestes Modell nach Test-RMSE: {best}")
     print()
@@ -923,6 +991,37 @@ def print_summary(ctx):
 
 
 # ── Hilfsfunktionen ──────────────────────────────────────────────────────────
+
+def _insert_group_midrules(latex_str: str, after_rows: set) -> str:
+    """Fügt nach bestimmten (0-indizierten) Datenzeilen \\midrule in einen
+    pandas-LaTeX-String ein — zur visuellen Gruppen-Trennung in der Tabelle.
+
+    after_rows: Menge von 0-indizierten Zeilennummern, nach denen ein
+    \\midrule eingefügt werden soll.
+    """
+    lines = latex_str.split("\n")
+    result = []
+    past_header_midrule = False
+    data_row_idx = -1
+
+    for line in lines:
+        stripped = line.strip()
+        # Die erste \midrule trennt Kopfzeile von Daten
+        if stripped == r"\midrule" and not past_header_midrule:
+            past_header_midrule = True
+            result.append(line)
+            continue
+        # Datenzeilen enden auf \\  und sind keine LaTeX-Befehls-Zeilen
+        if past_header_midrule and stripped.endswith(r"\\") and not stripped.startswith("\\"):
+            result.append(line)
+            data_row_idx += 1
+            if data_row_idx in after_rows:
+                result.append(r"\midrule")
+            continue
+        result.append(line)
+
+    return "\n".join(result)
+
 
 def _save(filename):
     plt.savefig(FIGURES_DIR / filename, bbox_inches="tight")
