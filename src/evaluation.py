@@ -1180,3 +1180,128 @@ def compute_robustness_mom(df_raw, test_months=TEST_MONTHS):
     print("direkt vergleichbar mit Atkeson & Ohanian (2001) und Medeiros et al. (2021).")
 
     return {"df_robustness_mom": df_robustness_mom}
+
+
+# ── Ökonomische Deutung der Selektion (AP30) ──────────────────────────────────
+
+def _get_economic_group(col):
+    """Ordnet eine Feature-Spalte (z.B. 'PPI_Gesamt_L1') einer ökonomischen Gruppe zu."""
+    if col.startswith("PPI_"):
+        return "PPI (Erzeugerpreise/Cost-Push)"
+    if col.startswith("LCI_"):
+        return "LCI (Lohnkosten/Cost-Push)"
+    if col.startswith("BS_"):
+        return "BS (Geschäftserwartungen)"
+    if col.startswith("ALQ_"):
+        return "ALQ (Arbeitsmarkt/Phillips)"
+    if col.startswith("IP_"):
+        return "IP (Industrieproduktion)"
+    return "Sonstige"
+
+
+def compute_selection_by_regime(X, y, train_end, lambda_lasso, shock_end=None):
+    """Regimeabhängige LASSO-Selektionshäufigkeit (Schock vs. Disinflation).
+
+    Dieselbe Expanding-Window-Schleife wie compute_selection_stability, aber
+    aufgeteilt nach Inflationsregime: Schock (≤ shock_end) vs. Disinflation
+    (> shock_end).  Erlaubt zu prüfen, ob Kostendruck-Variablen (PPI, LCI) im
+    Schock-Regime stärker gewichtet werden (zustandsabhängige Phillips-Kurve).
+
+    Parameters
+    ----------
+    X, y         : Feature-Matrix und Zielreihe (wie build_feature_matrix)
+    train_end    : int   — erster OOS-Index (= len(y) - TEST_MONTHS)
+    lambda_lasso : float — fixiertes LASSO-λ (aus der Haupt-CV)
+    shock_end    : str, z.B. "2023-03" (inkl.); None → REGIME_SHOCK_END
+
+    Returns
+    -------
+    dict mit:
+      'sel_freq_shock' : Series (Variable → Häufigkeit im Schock-Regime)
+      'sel_freq_disfl' : Series (Variable → Häufigkeit in Disinflation)
+      'df_sel_groups'  : DataFrame (Gruppe × [Gesamt, Schock, Disinflation])
+      'n_shock_sel'    : int — Anzahl Schock-Fenster
+      'n_disfl_sel'    : int — Anzahl Disinflations-Fenster
+    """
+    from .config import REGIME_SHOCK_END
+    if shock_end is None:
+        shock_end = REGIME_SHOCK_END
+
+    shock_end_ts = pd.Timestamp(shock_end)
+    n_feat = X.shape[1]
+    counts_total = np.zeros(n_feat)
+    counts_shock = np.zeros(n_feat)
+    counts_disfl = np.zeros(n_feat)
+    n_shock = 0
+    n_disfl = 0
+
+    for t in range(train_end, len(y)):
+        pred_date = y.index[t]
+        Xtr = X.iloc[:t]
+        sc  = StandardScaler().fit(Xtr)
+        m   = Lasso(alpha=lambda_lasso, max_iter=10000).fit(
+            sc.transform(Xtr), y.iloc[:t]
+        )
+        sel = (m.coef_ != 0).astype(int)
+        counts_total += sel
+        if pred_date <= shock_end_ts:
+            counts_shock += sel
+            n_shock += 1
+        else:
+            counts_disfl += sel
+            n_disfl += 1
+
+    n_total = n_shock + n_disfl
+    freq_total = pd.Series(counts_total / n_total, index=X.columns)
+    freq_shock = pd.Series(
+        counts_shock / n_shock if n_shock > 0 else counts_shock * 0.0,
+        index=X.columns,
+    )
+    freq_disfl = pd.Series(
+        counts_disfl / n_disfl if n_disfl > 0 else counts_disfl * 0.0,
+        index=X.columns,
+    )
+
+    groups = pd.Series({col: _get_economic_group(col) for col in X.columns})
+    df_groups = pd.DataFrame({
+        "Gesamt":       freq_total.groupby(groups).mean(),
+        "Schock":       freq_shock.groupby(groups).mean(),
+        "Disinflation": freq_disfl.groupby(groups).mean(),
+    }).round(3)
+    df_groups = df_groups.sort_values("Gesamt", ascending=False)
+
+    t0        = y.index[train_end].strftime("%Y-%m")
+    t1        = y.index[-1].strftime("%Y-%m")
+    shock_str = shock_end_ts.strftime("%Y-%m")
+    disfl_str = (shock_end_ts + pd.DateOffset(months=1)).strftime("%Y-%m")
+
+    print(f"\nRegimeabhängige Selektionshäufigkeit je ökonomische Gruppe "
+          f"(LASSO, λ={lambda_lasso:.5f})")
+    print(f"  OOS-Zeitraum:  {t0} – {t1}  (n={n_total} Fenster)")
+    print(f"  Schock:        {t0} – {shock_str} (n={n_shock})")
+    print(f"  Disinflation:  {disfl_str} – {t1} (n={n_disfl})")
+    print()
+    print(df_groups.to_string())
+    print()
+
+    cost_push_groups = ["PPI (Erzeugerpreise/Cost-Push)", "LCI (Lohnkosten/Cost-Push)"]
+    for grp in cost_push_groups:
+        if grp in df_groups.index:
+            s = df_groups.loc[grp, "Schock"]
+            d = df_groups.loc[grp, "Disinflation"]
+            direction = (
+                "höher im Schock-Regime (Kostendruck-Signal)"
+                if s > d
+                else "höher in der Disinflation"
+                if d > s
+                else "regimestabil"
+            )
+            print(f"  {grp}: Schock={s:.3f}, Disinfl.={d:.3f} → {direction}")
+
+    return {
+        "sel_freq_shock": freq_shock[freq_shock > 0].sort_values(ascending=False),
+        "sel_freq_disfl": freq_disfl[freq_disfl > 0].sort_values(ascending=False),
+        "df_sel_groups":  df_groups,
+        "n_shock_sel":    n_shock,
+        "n_disfl_sel":    n_disfl,
+    }

@@ -9,6 +9,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from src.evaluation import (
     bonferroni_correct, clark_west, compute_giacomini_rossi,
     compute_regime_analysis, compute_robustness_mom,
+    compute_selection_by_regime,
     diebold_mariano, rolling_origin,
 )
 
@@ -340,3 +341,63 @@ def test_robustness_mom_positive_rmse():
     rmse_col = df["Test RMSE (MoM)"]
     assert rmse_col.notna().all(), "Keine NaN-Werte in RMSE-Spalte erwartet"
     assert (rmse_col > 0).all(), f"Alle RMSE-Werte muessen positiv sein:\n{rmse_col}"
+
+
+# ── compute_selection_by_regime (AP30) ───────────────────────────────────────
+
+def _make_selection_data():
+    """Minimaler synthetischer Datensatz: PPI/ALQ/IP-Gruppen, 50 Punkte."""
+    np.random.seed(42)
+    n = 50
+    dates = pd.date_range("2018-01-01", periods=n, freq="MS")
+    X = pd.DataFrame({
+        "PPI_Test_L1":  np.random.randn(n),
+        "PPI_Test_L2":  np.random.randn(n),
+        "ALQ_Test_L1":  np.random.randn(n),
+        "IP_Test_L1":   np.random.randn(n),
+        "LCI_Test_L1":  np.random.randn(n),
+        "BS_Test_L1":   np.random.randn(n),
+    }, index=dates)
+    y = pd.Series(np.random.randn(n), index=dates)
+    return X, y
+
+
+def test_selection_by_regime_partition():
+    """n_shock_sel + n_disfl_sel muss gleich den OOS-Fenstern sein."""
+    X, y = _make_selection_data()
+    train_end = 36
+    ctx = compute_selection_by_regime(X, y, train_end, lambda_lasso=0.1,
+                                      shock_end="2021-06")
+    assert ctx["n_shock_sel"] + ctx["n_disfl_sel"] == len(y) - train_end
+
+
+def test_selection_by_regime_groups_present():
+    """df_sel_groups muss alle vorhandenen Gruppenbezeichnungen enthalten."""
+    X, y = _make_selection_data()
+    train_end = 36
+    ctx = compute_selection_by_regime(X, y, train_end, lambda_lasso=0.1,
+                                      shock_end="2021-06")
+    df = ctx["df_sel_groups"]
+    assert set(["Gesamt", "Schock", "Disinflation"]) == set(df.columns), (
+        f"Spalten erwartet: Gesamt/Schock/Disinflation, erhalten: {list(df.columns)}"
+    )
+    expected_groups = {
+        "PPI (Erzeugerpreise/Cost-Push)", "ALQ (Arbeitsmarkt/Phillips)",
+        "IP (Industrieproduktion)", "LCI (Lohnkosten/Cost-Push)",
+        "BS (Geschäftserwartungen)",
+    }
+    assert expected_groups.issubset(set(df.index)), (
+        f"Erwartete Gruppen fehlen: {expected_groups - set(df.index)}"
+    )
+
+
+def test_selection_by_regime_freq_in_unit_interval():
+    """Alle Selektionshäufigkeiten müssen in [0, 1] liegen."""
+    X, y = _make_selection_data()
+    train_end = 36
+    ctx = compute_selection_by_regime(X, y, train_end, lambda_lasso=0.1,
+                                      shock_end="2021-06")
+    df = ctx["df_sel_groups"]
+    assert (df >= 0).all().all() and (df <= 1).all().all(), (
+        f"Häufigkeiten außerhalb [0,1]:\n{df}"
+    )

@@ -793,6 +793,39 @@ def export_regime_table(df_regime, shock_end="2023-03", n_shock=None, n_disfl=No
     print(df_regime.to_string())
 
 
+# ── Selektionsdeutung (AP30) ──────────────────────────────────────────────────
+
+def export_selection_economic(sel_regime_ctx):
+    """Exportiert regimeabhängige Selektionshäufigkeit je ökonomische Gruppe."""
+    df  = sel_regime_ctx["df_sel_groups"]
+    n_s = sel_regime_ctx["n_shock_sel"]
+    n_d = sel_regime_ctx["n_disfl_sel"]
+
+    df.to_csv("results/selection_economic.csv")
+    print("results/selection_economic.csv gespeichert.")
+
+    latex_str = df.to_latex(
+        float_format="%.3f",
+        escape=False,
+        caption=(
+            r"LASSO-Selektionshäufigkeit je ökonomische Variablengruppe "
+            r"(mittlerer Anteil der Rolling-Fenster, in denen ≥\,1 Variable der Gruppe "
+            r"selektiert wurde). "
+            r"Schock: Energie-Preisschock-Regime (2021-06--2023-03, "
+            f"$n_{{\\text{{Schock}}}}={n_s}$). "
+            r"Disinflation: 2023-04--2024-10 "
+            f"($n_{{\\text{{Disinfl.}}}}={n_d}$). "
+            r"Kostendruck-Hypothese (Cost-Push/Phillips-Kurve): "
+            r"PPI- und LCI-Variablen sollten im Schock-Regime häufiger selektiert werden."
+        ),
+        label="tab:selection_economic",
+    )
+    with open("results/selection_economic.tex", "w") as f:
+        f.write(latex_str)
+    print("results/selection_economic.tex gespeichert.")
+    print(df.to_string())
+
+
 # ── README Auto-Sync ─────────────────────────────────────────────────────────
 
 def update_readmes(ctx):
