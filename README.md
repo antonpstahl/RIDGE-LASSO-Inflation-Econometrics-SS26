@@ -136,3 +136,19 @@ nearly match the RW here, but do not beat it significantly (Diebold-Mariano n.s.
 This is consistent with the inflation forecasting literature (Atkeson & Ohanian 2001; Stock &
 Watson 2007): structural models generally do not beat the naive benchmark. The Diebold-Mariano
 test (HLN correction, T=36) confirms: no model significantly beats the RW at the 5% level.
+
+4. **Contrast to Medeiros et al. (2021).** Medeiros, Vasconcelos, Veiga & Zilberman (JBES 2021,
+   "Forecasting Inflation in a Data-Rich Environment: The Benefits of Machine Learning Methods")
+   find robust ML forecast gains for US-CPI. Four explanations — each directly linked to the
+   results here — for the absent ML advantage in the German HICP setting:
+   (a) The 2021–2024 test window is dominated by the largest energy-price shock in the sample,
+   making the near-I(1) Random Walk mechanically hard to beat (confirmed by the regime analysis
+   §4.5.2 and the Giacomini-Rossi test §4.5.3);
+   (b) the YoY target embeds a strong persistence-driven autocorrelation (12-month cumulation),
+   producing an exceptionally strong RW benchmark — partly an artefact of the target definition;
+   (c) the analysis uses linear shrinkage only (Ridge/LASSO/EN), whereas Medeiros et al. exploit
+   Random Forests that capture non-linearities and regime interactions;
+   (d) the EU sample (2002–2024, 261 obs.) is shorter and dominated by a low-variance ZLB era
+   (2015–2021), weakening the training signal of macro predictors.
+   The null finding here *complements* Medeiros et al.: it shows that the ML advantage is
+   context-dependent and does not replicate in this linear, European, shock-dominated setting.

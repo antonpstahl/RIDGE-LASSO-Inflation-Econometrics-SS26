@@ -139,3 +139,22 @@ Das deckt sich mit der Literatur zur Inflationsprognose (Atkeson & Ohanian 2001;
 Watson 2007): strukturelle Modelle schlagen den naiven Benchmark in der Regel nicht. Der
 Diebold-Mariano-Test (HLN-Korrektur, T=36) bestätigt: kein Modell schlägt den RW
 nachweisbar auf dem 5-%-Niveau.
+
+4. **Kontrast zu Medeiros et al. (2021).** Medeiros, Vasconcelos, Veiga & Zilberman (JBES 2021,
+   „Forecasting Inflation in a Data-Rich Environment: The Benefits of Machine Learning Methods")
+   zeigen für US-CPI robuste ML-Prognosevorteile. Vier mit den eigenen Ergebnissen direkt
+   verknüpfte Erklärungen für den ausbleibenden ML-Vorteil im deutschen HVPI-Setting:
+   (a) Das Testfenster 2021–2024 ist vollständig vom größten Energiepreisschock der Stichprobe
+   dominiert — bei einer nahe-I(1)-Reihe ist der Random Walk im Schock-Regime mechanisch kaum zu
+   schlagen (Regime-Analyse §4.5.2 und Giacomini-Rossi-Test §4.5.3 bestätigen dies quantitativ);
+   (b) YoY-Raten tragen eine starke Persistenzautokorrelation durch den 12-Monats-Kumulationseffekt
+   — der YoY-Random-Walk ist damit ein außerordentlich starker Benchmark, teils ein Artefakt der
+   Zielgrößendefinition;
+   (c) die Analyse nutzt ausschließlich lineare Shrinkage-Methoden (Ridge/LASSO/EN), während Medeiros
+   et al. Random Forests mit Nichtlinearitäts- und Interaktionspotenzial einsetzen;
+   (d) die EU-Stichprobe (2002–2024, 261 Beob.) ist kürzer und durch die Nullzinsbindungsära
+   (2015–2021) mit geringer Inflationsvarianz dominiert — schwaches Trainingssignal mindert die
+   Prädiktorkraft der Makrovariablen im Test.
+   Der Null-Befund dieser Arbeit *widerspricht* Medeiros et al. nicht, sondern *ergänzt* ihn: der
+   ML-Vorteil ist kontextabhängig und im europäischen, linear-regularisierten Setting mit
+   energiepreis-dominiertem Testfenster nicht reproduzierbar.
