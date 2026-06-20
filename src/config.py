@@ -20,6 +20,11 @@ AR_LAGS     = [1, 2, 3, 6, 12]
 TEST_MONTHS = 36
 HORIZONS    = [1, 3, 6, 12]
 
+# ── Regime-Analyse (AP25) ─────────────────────────────────────────────────────
+# Energie-Preisschock-Peak: 2022-10 (HVPI YoY = 11,6 %); Abflauen ab 2023-04.
+# Schock-Regime inkl. bis 2023-03; ab 2023-04 Disinflationsphase.
+REGIME_SHOCK_END = "2023-03"
+
 # ── Reporting ─────────────────────────────────────────────────────────────────
 WINDOW_ROLLING_RMSE = 12
 TOP_N_STABILITY     = 25

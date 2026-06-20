@@ -281,6 +281,132 @@ def compute_compare_oos(oos_ctx, adap_ctx, y_oos_ref):
     return dict(compare_oos=compare_oos, adap_rmse=adap_rmse)
 
 
+# ── Regime-Analyse (Schock vs. Disinflation) ─────────────────────────────────
+
+def compute_regime_analysis(oos_ctx, shock_end=None):
+    """RMSE/RW je Regime (Schock vs. Disinflation) für Rolling-Origin-Prognosen.
+
+    Aufteiling der Rolling-Origin-OOS-Fehler in zwei Regime:
+    - Schock      : OOS-Beginn – shock_end inkl. (Energie-Preisschock, steigend/Peak)
+    - Disinflation: shock_end + 1 Monat – OOS-Ende (Inflationsrückgang Richtung 2 %)
+
+    Adressiert G27: die zentrale OOS-Aussage ruht auf einem einzigen Extrem-Regime.
+    Prüft, ob Modell-Rangfolge und RMSE/RW regimeabhängig kippen.
+
+    Parameters
+    ----------
+    oos_ctx   : dict aus compute_oos_predictions (enthält 'oos_df', 'y_oos_ref')
+    shock_end : str, z.B. "2023-03" (letzter Monat des Schock-Regimes, inkl.);
+                None → REGIME_SHOCK_END aus config.
+
+    Returns
+    -------
+    dict mit:
+      'df_regime' : DataFrame (Modell × [RMSE/RMSE-RW je Regime + Gesamt])
+      'rw_shock'  : float, RW-RMSE im Schock-Regime
+      'rw_disfl'  : float, RW-RMSE in der Disinflation
+      'shock_end' : str, verwendetes Trennmonats-Datum
+      'n_shock'   : int, Anzahl Beobachtungen im Schock-Regime
+      'n_disfl'   : int, Anzahl Beobachtungen in der Disinflation
+    """
+    from .config import REGIME_SHOCK_END
+    if shock_end is None:
+        shock_end = REGIME_SHOCK_END
+
+    shock_end_ts = pd.Timestamp(shock_end)
+    oos_df    = oos_ctx["oos_df"]
+    y_oos_ref = oos_ctx["y_oos_ref"]
+
+    common = oos_df.index.intersection(y_oos_ref.index)
+    y_ref  = y_oos_ref.loc[common]
+
+    mask_shock = common <= shock_end_ts
+    mask_disfl = ~mask_shock
+    idx_shock  = common[mask_shock]
+    idx_disfl  = common[mask_disfl]
+
+    n_shock = int(mask_shock.sum())
+    n_disfl = int(mask_disfl.sum())
+
+    t0        = common[0].strftime("%Y-%m")
+    shock_str = shock_end_ts.strftime("%Y-%m")
+    disfl_str = (shock_end_ts + pd.DateOffset(months=1)).strftime("%Y-%m")
+    t1        = common[-1].strftime("%Y-%m")
+
+    print(f"\nRegime-Analyse (Rolling-Origin, h=1)")
+    print(f"  Schock       ({t0} – {shock_str}): n={n_shock}")
+    print(f"  Disinflation ({disfl_str} – {t1}): n={n_disfl}")
+
+    def _seg_rmse(col_series, idx):
+        p = col_series.reindex(idx).dropna()
+        a = y_ref.loc[p.index]
+        return float(np.sqrt(np.mean((p - a) ** 2))) if len(p) > 0 else np.nan
+
+    rw_s = _seg_rmse(oos_df["RW"], idx_shock)
+    rw_d = _seg_rmse(oos_df["RW"], idx_disfl)
+    rw_g = _seg_rmse(oos_df["RW"], common)
+
+    print(f"\n{'Modell':<18} {'RMSE_S':>8} {'R/RW_S':>8}"
+          f" {'RMSE_D':>8} {'R/RW_D':>8} {'RMSE_G':>8} {'R/RW_G':>8}")
+    print("-" * 73)
+
+    records = []
+    for col in oos_df.columns:
+        rs = _seg_rmse(oos_df[col], idx_shock)
+        rd = _seg_rmse(oos_df[col], idx_disfl)
+        rg = _seg_rmse(oos_df[col], common)
+        rr_s = rs / rw_s if (not np.isnan(rs) and rw_s > 0) else np.nan
+        rr_d = rd / rw_d if (not np.isnan(rd) and rw_d > 0) else np.nan
+        rr_g = rg / rw_g if (not np.isnan(rg) and rw_g > 0) else np.nan
+        records.append({
+            "Modell":           col,
+            "RMSE Schock":      round(rs,   4),
+            "RMSE/RW Schock":   round(rr_s, 4),
+            "RMSE Disinfl.":    round(rd,   4),
+            "RMSE/RW Disinfl.": round(rr_d, 4),
+            "RMSE Gesamt":      round(rg,   4),
+            "RMSE/RW Gesamt":   round(rr_g, 4),
+        })
+        print(f"  {col:<16} {rs:>8.4f} {rr_s:>8.4f}"
+              f" {rd:>8.4f} {rr_d:>8.4f} {rg:>8.4f} {rr_g:>8.4f}")
+
+    print("-" * 73)
+    print(f"RW-RMSE: Schock={rw_s:.4f}  Disinfl.={rw_d:.4f}  Gesamt={rw_g:.4f}")
+    print(f"n:       Schock={n_shock}  Disinfl.={n_disfl}  Gesamt={n_shock + n_disfl}")
+
+    df_regime = pd.DataFrame(records).set_index("Modell")
+
+    # Befunde: regimeabhängige Rangfolge und ob ein Modell den RW schlägt
+    non_rw   = df_regime.drop("RW", errors="ignore")
+    best_s   = non_rw["RMSE/RW Schock"].idxmin()
+    best_d   = non_rw["RMSE/RW Disinfl."].idxmin()
+    beats_s  = bool((non_rw["RMSE/RW Schock"]   < 1.0).any())
+    beats_d  = bool((non_rw["RMSE/RW Disinfl."] < 1.0).any())
+
+    print(f"\nBEFUND Schock:       Bestes Nicht-RW-Modell = {best_s}"
+          f" (RMSE/RW = {df_regime.loc[best_s, 'RMSE/RW Schock']:.4f})")
+    print(f"BEFUND Disinflation: Bestes Nicht-RW-Modell = {best_d}"
+          f" (RMSE/RW = {df_regime.loc[best_d, 'RMSE/RW Disinfl.']:.4f})")
+    if not beats_s and not beats_d:
+        print("BEFUND: Kein Modell schlägt den RW in einem der beiden Regime.")
+        print("  → \"RW unschlagbar\" gilt nicht nur im Gesamtfenster, sondern")
+        print("     in Schock- und Disinflationsphase getrennt.")
+    else:
+        if beats_s:
+            print("BEFUND: Mindestens ein Modell schlägt den RW im Schock-Regime.")
+        if beats_d:
+            print("BEFUND: Mindestens ein Modell schlägt den RW in der Disinflation.")
+
+    return {
+        "df_regime": df_regime,
+        "rw_shock":  rw_s,
+        "rw_disfl":  rw_d,
+        "shock_end": shock_end,
+        "n_shock":   n_shock,
+        "n_disfl":   n_disfl,
+    }
+
+
 # ── Bonferroni-Korrektur für Mehrfachtests ────────────────────────────────────
 
 def bonferroni_correct(p_values):

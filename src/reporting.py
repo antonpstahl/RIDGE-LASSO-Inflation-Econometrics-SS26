@@ -620,6 +620,37 @@ def export_sources_table():
     print(df_sources.to_string(index=False))
 
 
+def export_regime_table(df_regime, shock_end="2023-03", n_shock=None, n_disfl=None):
+    """Exportiert Regime-Tabelle (Schock vs. Disinflation) nach results/regime_table.{csv,tex}."""
+    df_regime.to_csv("results/regime_table.csv")
+    print("results/regime_table.csv gespeichert.")
+
+    disfl_start = (pd.Timestamp(shock_end) + pd.DateOffset(months=1)).strftime("%Y-%m")
+    n_info = (
+        f"$n_{{\\text{{Schock}}}}={n_shock}$, $n_{{\\text{{Disinfl.}}}}={n_disfl}$. "
+        if n_shock is not None else ""
+    )
+    latex_str = df_regime.to_latex(
+        float_format="%.4f",
+        escape=False,
+        caption=(
+            r"Rolling-Origin-RMSE und RMSE/RW je Inflationsregime ($h=1$, festes $\lambda$). "
+            r"Schock: Energie-Preisschock (steigend/Peak, 2021-06--" + shock_end + r"). "
+            r"Disinflation: " + disfl_start + r"--2024-10. "
+            + n_info
+            + r"RMSE/RW $< 1$: Modell schlägt den Random Walk; "
+            r"RMSE/RW $= 1{,}00$: Referenz (RW). "
+            r"Kein Modell schlägt den RW in einem der beiden Regime — "
+            r"die Aussage ist nicht auf das Energiepreis-Schock-Regime beschränkt."
+        ),
+        label="tab:regime",
+    )
+    with open("results/regime_table.tex", "w") as f:
+        f.write(latex_str)
+    print("results/regime_table.tex gespeichert.")
+    print(df_regime.to_string())
+
+
 # ── README Auto-Sync ─────────────────────────────────────────────────────────
 
 def update_readmes(ctx):

@@ -6,7 +6,10 @@ import pytest
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from src.evaluation import bonferroni_correct, clark_west, diebold_mariano, rolling_origin
+from src.evaluation import (
+    bonferroni_correct, clark_west, compute_regime_analysis,
+    diebold_mariano, rolling_origin,
+)
 
 
 # ── Diebold-Mariano ───────────────────────────────────────────────────────────
@@ -144,6 +147,50 @@ def test_rolling_origin_index_alignment():
     preds = rolling_origin(lambda: LinearRegression(), X, y, start)
     expected_idx = idx[start:]
     pd.testing.assert_index_equal(preds.index, expected_idx)
+
+
+# ── Regime-Analyse ────────────────────────────────────────────────────────────
+
+def test_regime_analysis_rw_reference():
+    """RW hat RMSE/RW = 1.0 in beiden Regimen (Selbst-Referenz)."""
+    idx = pd.date_range("2021-06", periods=40, freq="MS")
+    rng = np.random.default_rng(42)
+    n   = len(idx)
+    y   = pd.Series(rng.standard_normal(n), index=idx)
+    rw  = pd.Series(rng.standard_normal(n), index=idx)
+    ar  = pd.Series(rng.standard_normal(n), index=idx)
+    oos_ctx = {
+        "oos_df":    pd.DataFrame({"RW": rw, "AR": ar}),
+        "y_oos_ref": y,
+    }
+    result = compute_regime_analysis(oos_ctx, shock_end="2023-03")
+    df     = result["df_regime"]
+    assert np.isclose(df.loc["RW", "RMSE/RW Schock"],   1.0, atol=1e-10), \
+        "RW RMSE/RW Schock sollte exakt 1.0 sein"
+    assert np.isclose(df.loc["RW", "RMSE/RW Disinfl."], 1.0, atol=1e-10), \
+        "RW RMSE/RW Disinfl. sollte exakt 1.0 sein"
+    assert np.isclose(df.loc["RW", "RMSE/RW Gesamt"],   1.0, atol=1e-10), \
+        "RW RMSE/RW Gesamt sollte exakt 1.0 sein"
+
+
+def test_regime_analysis_disjoint_split():
+    """n_shock + n_disfl == n (Regime-Split ist disjunkt und vollstaendig)."""
+    idx = pd.date_range("2021-06", periods=40, freq="MS")
+    rng = np.random.default_rng(7)
+    n   = len(idx)
+    y   = pd.Series(rng.standard_normal(n), index=idx)
+    oos_ctx = {
+        "oos_df": pd.DataFrame({
+            "RW": rng.standard_normal(n),
+            "AR": rng.standard_normal(n),
+        }, index=idx),
+        "y_oos_ref": y,
+    }
+    result = compute_regime_analysis(oos_ctx, shock_end="2023-03")
+    assert result["n_shock"] + result["n_disfl"] == n, \
+        "n_shock + n_disfl muss gleich Gesamt-n sein"
+    assert result["n_shock"] > 0, "Schock-Regime darf nicht leer sein"
+    assert result["n_disfl"] > 0, "Disinflations-Regime darf nicht leer sein"
 
 
 def test_rolling_origin_no_lookahead():

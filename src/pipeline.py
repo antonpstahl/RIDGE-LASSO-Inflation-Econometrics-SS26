@@ -8,12 +8,14 @@ from .evaluation import (
     compute_dm_tests,
     compute_horizon_analysis,
     compute_oos_predictions,
+    compute_regime_analysis,
     compute_selection_stability,
     compute_single_split_inference,
 )
 from .reporting import (
     export_horizons_table,
     export_inference_table,
+    export_regime_table,
     export_results_table,
     export_sources_table,
     fig_01_hvpi,
@@ -95,6 +97,7 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
         adap_ctx    = {}
         compare_ctx = {"compare_oos": oos_ctx["oos_df"], "adap_rmse": oos_ctx["oos_rmse"]}
 
+    reg_ctx = compute_regime_analysis(oos_ctx)
     dm_ctx  = compute_dm_tests(oos_ctx)
     sel_ctx = compute_selection_stability(X, y, train_end, models_ctx["lambda_lasso"])
     hor_ctx = compute_horizon_analysis(df_yoy, tscv=config.TSCV)
@@ -109,6 +112,7 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
         **oos_ctx,
         **adap_ctx,
         **compare_ctx,
+        **reg_ctx,
         **dm_ctx,
         **sel_ctx,
         **hor_ctx,
@@ -142,6 +146,12 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
     export_results_table(models_ctx["results"], splits["y_test"])
     export_inference_table(inf_ctx["df_inference"], splits["y_test"])
     export_horizons_table(hor_ctx["df_horizons"])
+    export_regime_table(
+        reg_ctx["df_regime"],
+        shock_end=reg_ctx["shock_end"],
+        n_shock=reg_ctx["n_shock"],
+        n_disfl=reg_ctx["n_disfl"],
+    )
     export_sources_table()
     update_readmes(ctx)
 
