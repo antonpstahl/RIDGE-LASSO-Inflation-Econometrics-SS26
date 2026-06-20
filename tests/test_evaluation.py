@@ -8,7 +8,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from src.evaluation import (
     bonferroni_correct, clark_west, compute_giacomini_rossi,
-    compute_regime_analysis, diebold_mariano, rolling_origin,
+    compute_regime_analysis, compute_robustness_mom,
+    diebold_mariano, rolling_origin,
 )
 
 
@@ -279,3 +280,63 @@ def test_rolling_origin_no_lookahead():
     first_pred = preds.iloc[0]
     assert abs(first_pred) < 0.5, \
         f"Look-ahead-Verdacht: erste Prognose = {first_pred:.3f} (erwartet ≈ 0)"
+
+
+# ── MoM-Robustheitsprüfung (AP29) ─────────────────────────────────────────────
+
+def _make_raw_df(T=220, n_pred=2, seed=99):
+    """Synthetisches df_raw: HVPI + n_pred Praediktor-Preisniveaureihen."""
+    rng = np.random.default_rng(seed)
+    idx = pd.date_range("2004-01", periods=T, freq="MS")
+    data = {"HVPI": 100 * np.exp(np.cumsum(rng.normal(0.002, 0.003, T)))}
+    for i in range(n_pred):
+        data[f"P{i}"] = 100 * np.exp(np.cumsum(rng.normal(0.001, 0.004, T)))
+    return pd.DataFrame(data, index=idx)
+
+
+def test_robustness_mom_output_structure():
+    """compute_robustness_mom gibt Dict mit DataFrame zurueck (Struktur-Smoke-Test)."""
+    df_raw = _make_raw_df()
+    result = compute_robustness_mom(df_raw, test_months=20)
+
+    assert "df_robustness_mom" in result, "Schluessel 'df_robustness_mom' fehlt"
+    df = result["df_robustness_mom"]
+    assert isinstance(df, pd.DataFrame), "df_robustness_mom muss ein DataFrame sein"
+
+
+def test_robustness_mom_expected_models():
+    """Alle sechs Modelle (RW, AO, AR, Ridge, LASSO, LASSO+HVPI) sind vorhanden."""
+    df_raw = _make_raw_df()
+    df = compute_robustness_mom(df_raw, test_months=20)["df_robustness_mom"]
+
+    expected = {"RW", "AO (Atkeson-Ohanian)", "AR", "Ridge", "LASSO", "LASSO+HVPI"}
+    assert set(df.index) == expected, (
+        f"Fehlende/unerwartete Modelle: {set(df.index).symmetric_difference(expected)}"
+    )
+
+
+def test_robustness_mom_rw_self_reference():
+    """RW hat RMSE/RW = 1.0 (Selbstreferenz)."""
+    df_raw = _make_raw_df()
+    df = compute_robustness_mom(df_raw, test_months=20)["df_robustness_mom"]
+    assert np.isclose(df.loc["RW", "RMSE/RW"], 1.0, atol=1e-10), (
+        f"RW RMSE/RW sollte exakt 1.0 sein, got {df.loc['RW', 'RMSE/RW']}"
+    )
+
+
+def test_robustness_mom_ao_self_reference():
+    """AO hat RMSE/AO = 1.0 (Selbstreferenz)."""
+    df_raw = _make_raw_df()
+    df = compute_robustness_mom(df_raw, test_months=20)["df_robustness_mom"]
+    assert np.isclose(df.loc["AO (Atkeson-Ohanian)", "RMSE/AO"], 1.0, atol=1e-10), (
+        f"AO RMSE/AO sollte exakt 1.0 sein, got {df.loc['AO (Atkeson-Ohanian)', 'RMSE/AO']}"
+    )
+
+
+def test_robustness_mom_positive_rmse():
+    """Alle RMSE-Werte sind endlich und positiv."""
+    df_raw = _make_raw_df()
+    df = compute_robustness_mom(df_raw, test_months=20)["df_robustness_mom"]
+    rmse_col = df["Test RMSE (MoM)"]
+    assert rmse_col.notna().all(), "Keine NaN-Werte in RMSE-Spalte erwartet"
+    assert (rmse_col > 0).all(), f"Alle RMSE-Werte muessen positiv sein:\n{rmse_col}"

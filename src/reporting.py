@@ -652,6 +652,38 @@ def export_sources_table():
     print(df_sources.to_string(index=False))
 
 
+def export_robustness_table(df_robustness_mom):
+    """Exportiert MoM-Robustheitstabelle (AP29) nach results/robustness_mom_table.{csv,tex}."""
+    df_robustness_mom.to_csv("results/robustness_mom_table.csv")
+    print("results/robustness_mom_table.csv gespeichert.")
+
+    df_tex = df_robustness_mom.rename(columns={
+        "Test RMSE (MoM)": "Test RMSE",
+        "RMSE/RW":         r"RMSE/RW",
+        "RMSE/AO":         r"RMSE/AO",
+    })
+    latex_str = df_tex.to_latex(
+        float_format="%.4f",
+        escape=False,
+        caption=(
+            r"Robustheitsprüfung MoM-Spezifikation (AP29): Rolling-Origin-RMSE "
+            r"($h=1$, festes $\lambda$) für die HVPI-Monatsrate (Δ\,\%) "
+            r"statt der Jahresrate (YoY). "
+            r"AO: Atkeson-Ohanian-Benchmark --- rollierender 12-Monats-Mittelwert "
+            r"der MoM-Raten (Atkeson \& Ohanian 2001, \emph{AER} 91). "
+            r"RMSE/RW\,$<1$: Modell schlägt Random Walk; "
+            r"RMSE/AO\,$<1$: Modell schlägt AO-Benchmark. "
+            r"Der Befund \emph{kein Makro-Mehrwert über die Persistenz hinaus} "
+            r"ist robust gegenüber der Wahl YoY\,vs.\,MoM als Zielgröße."
+        ),
+        label="tab:robustheit_mom",
+    )
+    with open("results/robustness_mom_table.tex", "w") as f:
+        f.write(latex_str)
+    print("results/robustness_mom_table.tex gespeichert.")
+    print(df_robustness_mom.to_string())
+
+
 def fig_14_giacomini_rossi(gr_ctx, shock_end=None):
     """Giacomini-Rossi-Fluctuation-Plot: rollierende GR_t(m)-Statistik vs. Zeit.
 

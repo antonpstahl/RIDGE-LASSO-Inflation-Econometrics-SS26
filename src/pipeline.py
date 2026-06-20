@@ -10,6 +10,7 @@ from .evaluation import (
     compute_horizon_analysis,
     compute_oos_predictions,
     compute_regime_analysis,
+    compute_robustness_mom,
     compute_selection_stability,
     compute_single_split_inference,
 )
@@ -19,6 +20,7 @@ from .reporting import (
     export_inference_table,
     export_regime_table,
     export_results_table,
+    export_robustness_table,
     export_sources_table,
     fig_01_hvpi,
     fig_02_correlation,
@@ -108,6 +110,7 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
     )
     sel_ctx = compute_selection_stability(X, y, train_end, models_ctx["lambda_lasso"])
     hor_ctx = compute_horizon_analysis(df_yoy, tscv=config.TSCV)
+    rob_ctx = compute_robustness_mom(df_raw, test_months=config.TEST_MONTHS)
 
     # ── Kontext zusammenführen ────────────────────────────────────────────────
     ctx = {
@@ -124,6 +127,7 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
         **gr_ctx,
         **sel_ctx,
         **hor_ctx,
+        **rob_ctx,
     }
 
     # ── Reporting ─────────────────────────────────────────────────────────────
@@ -163,6 +167,7 @@ def run_all(use_cache=True, verbose=True, adaptive_rolling=True,
     )
     export_sources_table()
     export_gr_table(gr_ctx)
+    export_robustness_table(rob_ctx["df_robustness_mom"])
     update_readmes(ctx)
 
     return ctx

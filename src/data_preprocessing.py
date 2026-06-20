@@ -12,6 +12,16 @@ def transform_to_yoy(df):
     return df_yoy.replace([np.inf, -np.inf], np.nan)
 
 
+def transform_to_mom(df):
+    """Transformiert alle Spalten in MoM-Veraenderungsraten (%) — Alternative zu YoY.
+
+    Robustheitsspezifikation (AP29): prueft, ob der Befund 'RW unschlagbar'
+    ein Artefakt der YoY-Wahl ist (G31 / Atkeson & Ohanian 2001).
+    """
+    df_mom = df.pct_change(1) * 100
+    return df_mom.replace([np.inf, -np.inf], np.nan)
+
+
 def build_feature_matrix(df_yoy, lags=None, target_col="HVPI",
                          forecast_horizon=1, test_months=TEST_MONTHS):
     """Erstellt leckage-freie Feature-Matrix X (verlagerte Praediktoren) und Ziel y."""

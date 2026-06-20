@@ -13,7 +13,7 @@ from sklearn.preprocessing import StandardScaler
 
 from .config import (
     ALPHAS_LASSO, ALPHAS_LASSO_INNER, ALPHAS_RIDGE, ALPHAS_RIDGE_INNER,
-    COLORS_OOS, HORIZONS, L1_RATIOS_ENET, L1_RATIOS_ENET_INNER,
+    AR_LAGS, COLORS_OOS, HORIZONS, L1_RATIOS_ENET, L1_RATIOS_ENET_INNER,
     LAGS, TEST_MONTHS, TSCV, TSCV_INNER, WINDOW_ROLLING_RMSE,
 )
 from .data_preprocessing import build_feature_matrix
@@ -996,3 +996,187 @@ def compute_stationarity_tests(df_raw, df_yoy):
     print("Transformation verringert die Persistenz gegenüber dem Niveau klar,")
     print("ist aber bei kurzen OOS-Fenstern kein Garant für vollständige Stationarität.")
     return {"df_stationarity": df_stat}
+
+
+# ── MoM-Robustheitsprüfung (AP29) ─────────────────────────────────────────────
+
+def _rmse_on(preds: pd.Series, actuals: pd.Series) -> float:
+    """RMSE von preds vs. actuals auf dem gemeinsamen Index (ohne NaN)."""
+    p = preds.reindex(actuals.index).dropna()
+    a = actuals.loc[p.index]
+    return float(np.sqrt(np.mean((p.values - a.values) ** 2))) if len(p) > 0 else np.nan
+
+
+def compute_robustness_mom(df_raw, test_months=TEST_MONTHS):
+    """Robustheitspruefung MoM-Spezifikation (AP29): alternative Zielgroesse zu YoY.
+
+    Prueft G31 — ob der Befund 'RW unschlagbar' ein Artefakt der YoY-Wahl ist.
+    Berechnet Rolling-Origin-RMSE (h=1, festes Lambda aus MoM-CV) fuer:
+      RW, Atkeson-Ohanian-Benchmark (2001), AR, Ridge, LASSO, LASSO+HVPI.
+
+    Atkeson-Ohanian-Benchmark: AO_t = mean(y_{t-12}, ..., y_{t-1}) der MoM-Raten
+    (rollierender 12-Monats-Mittelwert; Atkeson & Ohanian 2001, AER 91).
+
+    Parameters
+    ----------
+    df_raw      : DataFrame, Rohindizes (Niveau) — wird MoM-transformiert.
+    test_months : int, OOS-Laenge (default: TEST_MONTHS = 36).
+
+    Returns
+    -------
+    dict mit:
+      'df_robustness_mom' : DataFrame (Modell x [RMSE, RMSE/RW, RMSE/AO])
+    """
+    from .data_preprocessing import transform_to_mom, build_feature_matrix
+
+    df_mom = transform_to_mom(df_raw)
+
+    X_mom, y_mom = build_feature_matrix(
+        df_mom, lags=LAGS, forecast_horizon=1, test_months=test_months
+    )
+
+    train_end_m  = len(y_mom) - test_months
+    y_train_m    = y_mom.iloc[:train_end_m]
+    y_test_m     = y_mom.iloc[train_end_m:]
+    X_train_m    = X_mom.iloc[:train_end_m]
+
+    sc_m  = StandardScaler().fit(X_train_m)
+    Xtr_s = sc_m.transform(X_train_m)
+
+    print("\n" + "=" * 65)
+    print("Robustheitsprüfung: MoM-Spezifikation (AP29 / G31)")
+    print("Zielgröße: HVPI-Monatsrate (MoM, Δ%) statt Jahresrate (YoY)")
+    print(f"Trainingsdaten: {len(y_train_m)} Monate  |  Testdaten: {len(y_test_m)} Monate")
+    print(f"Testfenster: {y_test_m.index[0]:%Y-%m} – {y_test_m.index[-1]:%Y-%m}")
+    print(f"Feature-Matrix: {X_mom.shape[1]} Features")
+    print("=" * 65)
+
+    # ── RW (MoM) ──────────────────────────────────────────────────────────────
+    oos_rw_m = y_mom.shift(1).reindex(y_test_m.index).rename("RW")
+
+    # ── Atkeson-Ohanian-Benchmark (2001): rollierender 12-Monats-Mittelwert ───
+    # AO_t = mean(y_{t-12}, ..., y_{t-1}): erst rolling(12).mean() auf der
+    # vollstaendigen Reihe, dann shift(1), damit zum Zeitpunkt t nur Daten bis
+    # t-1 genutzt werden (leak-frei).
+    oos_ao_m = (
+        y_mom.rolling(12).mean().shift(1).reindex(y_test_m.index)
+    ).rename("AO (Atkeson-Ohanian)")
+
+    # ── AR (MoM Eigen-Lags) ───────────────────────────────────────────────────
+    X_ar_m    = pd.DataFrame(
+        {f"HVPI_L{l}": y_mom.shift(l) for l in AR_LAGS}
+    ).dropna()
+    y_ar_m    = y_mom.loc[X_ar_m.index]
+    start_ar_m = int((X_ar_m.index >= y_test_m.index[0]).argmax())
+    oos_ar_m  = rolling_origin(
+        lambda: LinearRegression(), X_ar_m, y_ar_m, start_ar_m, desc="AR (MoM)"
+    ).rename("AR")
+
+    # ── Ridge (festes Lambda aus MoM-CV) ──────────────────────────────────────
+    ridge_m_cv = RidgeCV(
+        alphas=ALPHAS_RIDGE, cv=TSCV, scoring="neg_mean_squared_error"
+    ).fit(Xtr_s, y_train_m)
+    lambda_ridge_m = ridge_m_cv.alpha_
+    oos_ridge_m = rolling_origin(
+        lambda: Ridge(alpha=lambda_ridge_m),
+        X_mom, y_mom, train_end_m, desc="Ridge (MoM)",
+    ).rename("Ridge")
+
+    # ── LASSO (festes Lambda aus MoM-CV) ──────────────────────────────────────
+    lasso_m_cv = LassoCV(
+        alphas=ALPHAS_LASSO, cv=TSCV, max_iter=10000, n_jobs=-1
+    ).fit(Xtr_s, y_train_m)
+    lambda_lasso_m = lasso_m_cv.alpha_
+    oos_lasso_m = rolling_origin(
+        lambda: Lasso(alpha=lambda_lasso_m, max_iter=10000),
+        X_mom, y_mom, train_end_m, desc="LASSO (MoM)",
+    ).rename("LASSO")
+
+    # ── LASSO+HVPI (MoM Makro + Eigen-Lags) ──────────────────────────────────
+    X_plus_m = X_mom.copy()
+    for l in AR_LAGS:
+        X_plus_m[f"HVPI_L{l}"] = y_mom.shift(l)
+    X_plus_m      = X_plus_m.loc[y_mom.index].dropna()
+    y_plus_m      = y_mom.loc[X_plus_m.index]
+    X_plus_tr_m   = X_plus_m.loc[X_plus_m.index <= y_train_m.index[-1]]
+    y_plus_tr_m   = y_plus_m.loc[X_plus_tr_m.index]
+    sc_plus_m     = StandardScaler().fit(X_plus_tr_m)
+    Xptr_s        = sc_plus_m.transform(X_plus_tr_m)
+    start_plus_m  = int((X_plus_m.index >= y_test_m.index[0]).argmax())
+
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        lasso_plus_m_cv = LassoCV(
+            alphas=ALPHAS_LASSO, cv=TSCV, max_iter=10000, n_jobs=-1
+        ).fit(Xptr_s, y_plus_tr_m)
+    lambda_lasso_plus_m = lasso_plus_m_cv.alpha_
+
+    oos_lasso_plus_m = rolling_origin(
+        lambda: Lasso(alpha=lambda_lasso_plus_m, max_iter=10000),
+        X_plus_m, y_plus_m, start_plus_m,
+        desc="LASSO+HVPI (MoM)", suppress_fp=True,
+    ).rename("LASSO+HVPI")
+
+    # ── RMSE-Tabelle ──────────────────────────────────────────────────────────
+    series_map = {
+        "RW":                    oos_rw_m,
+        "AO (Atkeson-Ohanian)":  oos_ao_m,
+        "AR":                    oos_ar_m,
+        "Ridge":                 oos_ridge_m,
+        "LASSO":                 oos_lasso_m,
+        "LASSO+HVPI":            oos_lasso_plus_m,
+    }
+
+    rw_rmse = _rmse_on(oos_rw_m, y_test_m)
+    ao_rmse = _rmse_on(oos_ao_m, y_test_m)
+
+    print(f"\n{'Modell':<25} {'RMSE':>8} {'RMSE/RW':>9} {'RMSE/AO':>9}")
+    print("-" * 56)
+
+    records = []
+    for name, s in series_map.items():
+        rmse = _rmse_on(s, y_test_m)
+        rel_rw = rmse / rw_rmse if rw_rmse > 0 else np.nan
+        rel_ao = rmse / ao_rmse if ao_rmse > 0 else np.nan
+        records.append({
+            "Modell":            name,
+            "Test RMSE (MoM)":   round(rmse,   4),
+            "RMSE/RW":           round(rel_rw,  4),
+            "RMSE/AO":           round(rel_ao,  4),
+        })
+        rw_str = "1.000 (Ref)" if name == "RW"                   else f"{rel_rw:.4f}"
+        ao_str = "1.000 (Ref)" if "AO" in name and "RW" not in name else f"{rel_ao:.4f}"
+        print(f"  {name:<23} {rmse:>8.4f} {rw_str:>9} {ao_str:>9}")
+
+    print("-" * 56)
+
+    df_robustness_mom = pd.DataFrame(records).set_index("Modell")
+
+    # ── Befunde ───────────────────────────────────────────────────────────────
+    non_bench_names = [r["Modell"] for r in records
+                       if r["Modell"] not in ("RW", "AO (Atkeson-Ohanian)")]
+    non_bench_rmse  = {r["Modell"]: r["Test RMSE (MoM)"] for r in records
+                       if r["Modell"] in non_bench_names}
+    beats_rw = any(v < rw_rmse for v in non_bench_rmse.values())
+    beats_ao = any(v < ao_rmse for v in non_bench_rmse.values())
+
+    print()
+    if not beats_rw:
+        print("BEFUND MoM: Kein Modell schlägt den RW unter MoM-Spezifikation.")
+        print("  → 'RW unschlagbar' ist KEIN Artefakt der YoY-Wahl.")
+        print("  → Schlussfolgerung robust gegenüber Zielgrößenspezifikation.")
+    else:
+        best_m = min(non_bench_rmse, key=non_bench_rmse.get)
+        print(f"BEFUND MoM: {best_m} schlägt RW (RMSE/RW={non_bench_rmse[best_m]/rw_rmse:.4f}).")
+        print("  → Schlussfolgerung unter MoM spezifikationsabhängig.")
+    if not beats_ao:
+        print("BEFUND MoM: Kein Modell schlägt den AO-Benchmark (Atkeson & Ohanian 2001).")
+    else:
+        best_ao = min(non_bench_rmse, key=lambda k: non_bench_rmse[k] / ao_rmse)
+        print(f"BEFUND MoM: {best_ao} schlägt AO-Benchmark "
+              f"(RMSE/AO={non_bench_rmse[best_ao]/ao_rmse:.4f}).")
+
+    print()
+    print("YoY bleibt Hauptspezifikation: höhere Persistenz (nahe I(1)-Verhalten),")
+    print("direkt vergleichbar mit Atkeson & Ohanian (2001) und Medeiros et al. (2021).")
+
+    return {"df_robustness_mom": df_robustness_mom}
