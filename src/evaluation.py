@@ -22,7 +22,7 @@ from .models import AdaptiveLasso
 
 # ── Rolling-Origin ────────────────────────────────────────────────────────────
 
-def rolling_origin(model_factory, X, y, start, desc="", suppress_fp=False, cache_path=None):
+def rolling_origin(model_factory, X, y, start, desc="", suppress_fp=False):
     """Expanding-Window Rolling-Origin Prognose.
 
     Parameters
@@ -33,17 +33,13 @@ def rolling_origin(model_factory, X, y, start, desc="", suppress_fp=False, cache
     desc          : Bezeichnung fuer tqdm-Fortschrittsanzeige
     suppress_fp   : bool; unterdrückt FP-Ausnahmen (divide/over/invalid) lokal je
                     fit()-Aufruf — nur fuer LASSO-Modelle auf erweiterter Feature-Matrix.
-    cache_path    : pathlib.Path oder str; Pfad fuer Zwischen-CSV-Caching der OOS-Reihe.
-                    Bei Neustart werden bereits berechnete Punkte wiederverwendet.
-    """
-    # Zwischen-Caching: bereits berechnete Prognosen wiederverwenden
-    preds_cache: dict = {}
-    if cache_path is not None:
-        cp = pathlib.Path(cache_path)
-        if cp.exists():
-            cached = pd.read_csv(cp, index_col=0, parse_dates=True).squeeze()
-            preds_cache = dict(zip(cached.index, cached.values))
 
+    Note: Ein frueherer cache_path-Parameter wurde entfernt, da er (a) von keinem Aufrufer
+    je übergeben wurde (toter Code) und (b) den Cache nur nach Datums-Index schlüsselte,
+    nicht nach Modell/λ — bei Wiederverwendung mit anderem λ haette das stille Stale-
+    Prognosen erzeugt. Zwischencaching kann sauber implementiert werden, indem der Key
+    eine (model_name, lambda)-Signatur einschliesst.
+    """
     try:
         from tqdm.auto import tqdm as _tqdm
         _iter = _tqdm(range(start, len(y)), desc=desc or "Rolling-Origin", leave=False)
@@ -52,11 +48,6 @@ def rolling_origin(model_factory, X, y, start, desc="", suppress_fp=False, cache
 
     preds, idx = [], []
     for t in _iter:
-        t_idx = y.index[t]
-        if t_idx in preds_cache:
-            preds.append(preds_cache[t_idx])
-            idx.append(t_idx)
-            continue
         Xtr, ytr = X.iloc[:t], y.iloc[:t]
         sc = StandardScaler().fit(Xtr)
         if suppress_fp:
@@ -69,9 +60,7 @@ def rolling_origin(model_factory, X, y, start, desc="", suppress_fp=False, cache
             m    = model_factory().fit(sc.transform(Xtr), ytr)
             pred = m.predict(sc.transform(X.iloc[[t]]))[0]
         preds.append(pred)
-        idx.append(t_idx)
-        if cache_path is not None:
-            pd.Series(preds, index=idx).to_csv(pathlib.Path(cache_path))
+        idx.append(y.index[t])
 
     return pd.Series(preds, index=idx)
 

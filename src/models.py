@@ -19,7 +19,12 @@ class AdaptiveLasso:
         self.max_iter = max_iter
 
     def fit(self, X, y):
-        # Schritt 1: Ridge als initialer Schätzer
+        # Schritt 1: Ridge als initialer Schätzer.
+        # RidgeCV ohne cv-Parameter nutzt sklearn-LOO-GCV (effiziente Leave-One-Out-
+        # Schätzung), das die Zeitstruktur ignoriert. Das ist hier bewusst: die
+        # Ridge-Koeffizienten dienen nur als Initialgewichte fuer die adaptive
+        # Skalierung (Schritt 2) — sie gehen nicht als Prognose ein. Der eigentliche
+        # Schätzer (LassoCV, Schritt 3) nutzt zeitkonformes TS-CV ueber self.cv.
         init = RidgeCV(alphas=np.logspace(-2, 4, 30)).fit(X, y)
         self._scale = np.abs(init.coef_) ** self.gamma + self.eps
         # Schritt 2: Features rescalen  X̃_j = X_j · scale_j
