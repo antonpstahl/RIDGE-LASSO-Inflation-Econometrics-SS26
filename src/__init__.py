@@ -1,1 +1,1 @@
-"LASSO & Ridge Inflationsprognose — modulare Pipeline."
+"LASSO & Ridge Inflationsprognose — wiederverwendbare Analyse-Funktionen."

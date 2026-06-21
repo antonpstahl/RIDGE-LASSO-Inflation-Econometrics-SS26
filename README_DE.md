@@ -28,14 +28,13 @@ RIDGE-LASSO-Inflation-Econometrics-SS26/
 │   └── Vorgehensplan_Seminararbeit_Oekonometrie.pdf  Ursprünglicher Vorgehensplan
 ├── notebooks/
 │   └── LASSO_Ridge_Inflationsprognose.ipynb   Haupt-Analysenotebook (mit Outputs)
-├── src/                         Python-Paket — wiederverwendbare Pipeline-Module
+├── src/                         Python-Paket — wiederverwendbare Analyse-Funktionen
 │   ├── __init__.py
 │   ├── config.py                Pfade, Seeds, Hyperparameter-Grids, CV-Objekte
 │   ├── data_preparation.py      Datenabruf (ECB/Eurostat API + CSV-Cache)
 │   ├── data_preprocessing.py    YoY-Transformation, Lag-Feature-Engineering
 │   ├── evaluation.py            OOS-Evaluation, Rolling-Origin, DM-Test, Horizont-Analyse
 │   ├── models.py                Modelldefinitionen (OLS, Ridge, LASSO, Elastic Net, AR)
-│   ├── pipeline.py              End-to-End-Orchestrierung via run_all()
 │   ├── reporting.py             Abbildungserzeugung (fig_01–fig_13) + Tabellenexport
 │   └── training.py              Modellschätzung und Kreuzvalidierung
 ├── tests/
@@ -80,18 +79,17 @@ Daten werden aus `data/raw/data_raw.csv` gecacht; nur beim ersten Lauf (oder mit
 ```bash
 pip install -r requirements.txt
 
-# Option A — vollständige Pipeline als Python-Skript ausführen
-python -c "from src.pipeline import run_all; run_all()"
+# 1) Testsuite ausführen (sichert die wiederverwendbaren Funktionen in src/ ab)
+pytest tests/
 
-# Option B — Notebook ausführen (schreibt Abbildungen nach results/figures/)
+# 2) Notebook von vorne durchlaufen lassen (erzeugt alle results/-Artefakte + Abbildungen)
 jupyter nbconvert --to notebook --execute --inplace \
     notebooks/LASSO_Ridge_Inflationsprognose.ipynb
-
-# Tests ausführen
-pytest tests/
 ```
 
-Oder einfach interaktiv in Jupyter / VS Code öffnen und alle Zellen ausführen.
+Oder einfach interaktiv in Jupyter / VS Code öffnen, Kernel neu starten und „Run All".
+Das Notebook ist die zentrale, alleinige Auswertung; `src/` enthält nur die
+wiederverwendbaren Funktionen, `tests/` sichert sie ab.
 Das eingecheckte Notebook enthält bereits die Outputs des letzten Laufs; die
 Abbildungen liegen zusätzlich als PNG in `results/figures/`.
 

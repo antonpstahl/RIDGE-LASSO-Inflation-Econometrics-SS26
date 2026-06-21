@@ -95,7 +95,7 @@ LCI_SERIES = {
 
 
 def setup_environment():
-    """Apply global numpy / matplotlib settings. Call once at pipeline start."""
+    """Apply global numpy / matplotlib settings. Call once at notebook start."""
     import matplotlib.pyplot as plt
 
     np.random.seed(SEED)

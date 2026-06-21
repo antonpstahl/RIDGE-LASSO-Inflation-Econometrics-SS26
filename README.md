@@ -28,14 +28,13 @@ RIDGE-LASSO-Inflation-Econometrics-SS26/
 │   └── Vorgehensplan_Seminararbeit_Oekonometrie.pdf  Original project plan (German)
 ├── notebooks/
 │   └── LASSO_Ridge_Inflationsprognose.ipynb   Main analysis notebook (with outputs)
-├── src/                         Python package — reusable pipeline modules
+├── src/                         Python package — reusable analysis functions
 │   ├── __init__.py
 │   ├── config.py                Paths, seeds, hyperparameter grids, CV objects
 │   ├── data_preparation.py      Data download (ECB/Eurostat API + CSV cache)
 │   ├── data_preprocessing.py    YoY transformation, lag feature engineering
 │   ├── evaluation.py            OOS evaluation, rolling-origin, DM test, horizon analysis
 │   ├── models.py                Model definitions (OLS, Ridge, LASSO, Elastic Net, AR)
-│   ├── pipeline.py              End-to-end orchestration via run_all()
 │   ├── reporting.py             Figure generation (fig_01–fig_13) + table export
 │   └── training.py              Model fitting and cross-validation
 ├── tests/
@@ -78,20 +77,18 @@ Data are cached in `data/raw/data_raw.csv`; only on the first run (or with
 ```bash
 pip install -r requirements.txt
 
-# Option A — run the full pipeline as a Python script
-python -c "from src.pipeline import run_all; run_all()"
+# 1) Run the test suite (covers the reusable functions in src/)
+pytest tests/
 
-# Option B — execute notebook (writes figures to results/figures/)
+# 2) Re-run the notebook end-to-end (regenerates all results/ artefacts + figures)
 jupyter nbconvert --to notebook --execute --inplace \
     notebooks/LASSO_Ridge_Inflationsprognose.ipynb
-
-# Run tests
-pytest tests/
 ```
 
-Or open the notebook interactively in Jupyter / VS Code and run all cells.
-The committed notebook already contains the outputs of the last run; figures are also
-available as PNGs in `results/figures/`.
+Or open the notebook interactively in Jupyter / VS Code, restart the kernel and "Run All".
+The notebook is the single, central analysis; `src/` holds only the reusable functions and
+`tests/` covers them. The committed notebook already contains the outputs of the last run;
+figures are also available as PNGs in `results/figures/`.
 
 ## Results overview (last run)
 
