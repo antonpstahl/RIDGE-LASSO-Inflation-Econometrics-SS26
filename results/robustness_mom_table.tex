@@ -1,10 +1,10 @@
 \begin{table}
-\caption{Robustheitsprüfung MoM-Spezifikation (AP29): Rolling-Origin-RMSE ($h=1$, festes $\lambda$) für die HVPI-Monatsrate (Δ\,\%) statt der Jahresrate (YoY). AO: Atkeson-Ohanian-Benchmark --- rollierender 12-Monats-Mittelwert der MoM-Raten (Atkeson \& Ohanian 2001, \emph{AER} 91). RMSE/RW\,$<1$: Modell schlägt Random Walk; RMSE/AO\,$<1$: Modell schlägt AO-Benchmark. Der Befund \emph{kein Makro-Mehrwert über die Persistenz hinaus} ist robust gegenüber der Wahl YoY\,vs.\,MoM als Zielgröße.}
+\caption{Robustness check MoM specification (AP29): rolling-origin RMSE ($h=1$, fixed $\lambda$) for the HICP monthly rate (Δ\,\%) instead of the annual rate (YoY). AO: Atkeson-Ohanian benchmark - rolling 12-month mean of the MoM rates (Atkeson \& Ohanian 2001, \emph{AER} 91). RMSE/RW\,$<1$: model undercuts the RW in RMSE. RMSE/AO\,$<1$: model undercuts the AO benchmark in RMSE. In the MoM specification the RW is a weak benchmark that all macro models undercut. The decisive benchmark is the AO benchmark (pure persistence), which no model undercuts. The finding \emph{no macro value-added beyond persistence} is thus robust to the choice of YoY\,vs.\,MoM as the target.}
 \label{tab:robustheit_mom}
 \begin{tabular}{lrrr}
 \toprule
  & Test RMSE & RMSE/RW & RMSE/AO \\
-Modell &  &  &  \\
+Model &  &  &  \\
 \midrule
 RW & 0.7343 & 1.0000 & 1.2199 \\
 AO (Atkeson-Ohanian) & 0.6020 & 0.8197 & 1.0000 \\

@@ -1,4 +1,4 @@
-Modell,Test RMSE (MoM),RMSE/RW,RMSE/AO
+Model,Test RMSE (MoM),RMSE/RW,RMSE/AO
 RW,0.7343,1.0,1.2199
 AO (Atkeson-Ohanian),0.602,0.8197,1.0
 AR,0.687,0.9356,1.1413

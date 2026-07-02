@@ -1,4 +1,4 @@
-"""Abbildungen, LaTeX/CSV-Export, README-Auto-Sync (querschnittlich)."""
+"""Figures, LaTeX/CSV export, README auto-sync (cross-cutting)."""
 import pathlib
 import re
 
@@ -17,14 +17,14 @@ from .config import (
 )
 
 
-# ── fig_01: HVPI Zeitreihe ────────────────────────────────────────────────────
+# --- fig_01: HICP time series ---
 
 def fig_01_hvpi(df_raw, df_yoy):
     fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=False)
 
     hvpi_raw = df_raw["HVPI"].dropna()
     axes[0].plot(hvpi_raw.index, hvpi_raw.values, color="#2196F3", linewidth=1.5)
-    axes[0].set_title("HVPI Deutschland – Indexniveau (2015 = 100)")
+    axes[0].set_title("HICP Germany - index level (2015 = 100)")
     axes[0].set_ylabel("Index")
     axes[0].axhline(100, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
 
@@ -32,20 +32,20 @@ def fig_01_hvpi(df_raw, df_yoy):
     axes[1].plot(hvpi_yoy.index, hvpi_yoy.values, color="#E91E63", linewidth=1.5)
     axes[1].axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
     axes[1].axhline(2, color="#4CAF50", linestyle=":", linewidth=1.2, alpha=0.8,
-                    label="EZB-Ziel (2%)")
+                    label="ECB target (2%)")
     axes[1].fill_between(hvpi_yoy.index, hvpi_yoy.values, 0,
                          where=hvpi_yoy.values > 0, alpha=0.15, color="#E91E63")
-    axes[1].set_title("HVPI-Inflationsrate Deutschland (YoY, %)")
-    axes[1].set_ylabel("Veränderung ggü. Vorjahr (%)")
+    axes[1].set_title("HICP inflation rate Germany (YoY, %)")
+    axes[1].set_ylabel("Year-over-year change (%)")
     axes[1].legend()
 
     plt.tight_layout()
     _save("fig_01_hvpi_zeitreihe.png")
     plt.show()
-    print("Abbildung gespeichert: fig_01_hvpi_zeitreihe.png")
+    print("Figure saved: fig_01_hvpi_zeitreihe.png")
 
 
-# ── fig_02: Korrelation Prädiktoren mit y ─────────────────────────────────────
+# --- fig_02: correlation of predictors with y ---
 
 def fig_02_correlation(X, y):
     pred_cols_l1 = [c for c in X.columns if c.endswith("_L1")]
@@ -59,15 +59,15 @@ def fig_02_correlation(X, y):
     colors  = ["#E91E63" if v < 0 else "#2196F3" for v in corr_with_y.values]
     ax.barh(corr_with_y.index, corr_with_y.values, color=colors, alpha=0.8)
     ax.axvline(0, color="black", linewidth=0.8)
-    ax.set_title("Korrelation der Prädiktoren (Lag 1) mit HVPI-Inflationsrate")
-    ax.set_xlabel("Pearson-Korrelation")
+    ax.set_title("Correlation of predictors (lag 1) with HICP inflation rate")
+    ax.set_xlabel("Pearson correlation")
     plt.tight_layout()
     _save("fig_02_korrelation.png")
     plt.show()
-    print("Abbildung gespeichert: fig_02_korrelation.png")
+    print("Figure saved: fig_02_korrelation.png")
 
 
-# ── fig_02b: Korrelations-Heatmap + Konditionszahl ───────────────────────────
+# --- fig_02b: correlation heatmap + condition number ---
 
 def fig_02b_heatmap(X, train_end):
     _n_test = TEST_MONTHS
@@ -83,21 +83,21 @@ def fig_02b_heatmap(X, train_end):
         xticklabels=[c.replace("_L1", "") for c in pred_l1.columns],
         yticklabels=[c.replace("_L1", "") for c in pred_l1.columns],
     )
-    ax.set_title("Korrelationsmatrix der Prädiktoren (Lag 1) — Trainingsset")
+    ax.set_title("Correlation matrix of predictors (lag 1) - training set")
     ax.tick_params(axis="x", rotation=45, labelsize=8)
     ax.tick_params(axis="y", rotation=0,  labelsize=8)
     plt.tight_layout()
     _save("fig_02b_korr_heatmap.png")
     plt.show()
-    print("Abbildung gespeichert: fig_02b_korr_heatmap.png")
+    print("Figure saved: fig_02b_korr_heatmap.png")
 
     _Xtr_s   = StandardScaler().fit_transform(_Xtr)
     cond_XtX = np.linalg.cond(_Xtr_s.T @ _Xtr_s)
-    print(f"\nKonditionszahl von X'X (standardisiert): {cond_XtX:.2e}")
-    print("→ Werte >> 1 bestätigen starke Multikollinearität und erklären OLS-Instabilität.")
+    print(f"\nCondition number of X'X (standardised): {cond_XtX:.2e}")
+    print("-> Values >> 1 confirm strong multicollinearity and explain OLS instability.")
 
 
-# ── fig_03: TimeSeriesSplit Visualisierung ────────────────────────────────────
+# --- fig_03: TimeSeriesSplit visualisation ---
 
 def fig_03_tscv(X_train_s, tscv):
     fig, ax = plt.subplots(figsize=(12, 4))
@@ -105,9 +105,9 @@ def fig_03_tscv(X_train_s, tscv):
         ax.scatter(tr_idx, [fold] * len(tr_idx), s=3, color="#2196F3", alpha=0.4)
         ax.scatter(te_idx, [fold] * len(te_idx), s=3, color="#E91E63", alpha=0.8)
 
-    ax.set_xlabel("Beobachtungsindex (Trainingsset)")
+    ax.set_xlabel("Observation index (training set)")
     ax.set_ylabel("Fold")
-    ax.set_title("TimeSeriesSplit Cross-Validation (Blau=Training, Rot=Test)")
+    ax.set_title("TimeSeriesSplit cross-validation (blue=training, red=test)")
     ax.legend(handles=[
         Patch(color="#2196F3", alpha=0.7, label="Training"),
         Patch(color="#E91E63", alpha=0.9, label="Validation"),
@@ -117,7 +117,7 @@ def fig_03_tscv(X_train_s, tscv):
     plt.show()
 
 
-# ── fig_04: Prognose-Plot ─────────────────────────────────────────────────────
+# --- fig_04: forecast plot ---
 
 def fig_04_forecast(ctx):
     y_test              = ctx["y_test"]
@@ -137,13 +137,13 @@ def fig_04_forecast(ctx):
     rmse_lasso_plus_test = ctx["rmse_lasso_plus_test"]
 
     fig, ax = plt.subplots(figsize=(14, 6))
-    ax.plot(y_test.index, y_test.values, "k-", linewidth=2, label="Tatsächlich", zorder=5)
+    ax.plot(y_test.index, y_test.values, "k-", linewidth=2, label="Actual", zorder=5)
     ax.plot(y_test.index, y_pred_rw_test.values,
             ":", color="#9E9E9E", linewidth=1.8,
             label=f"Random Walk (RMSE={rmse_rw_test:.3f})", alpha=0.9)
     ax.plot(y_pred_ar_test.index, y_pred_ar_test.values,
             "-.", color="#795548", linewidth=1.5,
-            label=f"Lag-Modell ADL (RMSE={rmse_ar_test:.3f})", alpha=0.9)
+            label=f"Lag model ADL (RMSE={rmse_ar_test:.3f})", alpha=0.9)
     ax.plot(y_test.index, y_pred_ols_test,
             "--", color=COLORS["OLS"], linewidth=1.3,
             label=f"OLS (RMSE={np.sqrt(mse_ols_test):.3f})", alpha=0.7)
@@ -160,17 +160,17 @@ def fig_04_forecast(ctx):
             "--", color="#9C27B0", linewidth=1.5,
             label=f"LASSO+HVPI (RMSE={rmse_lasso_plus_test:.3f})", alpha=0.85)
     ax.axhline(0, color="gray", linewidth=0.7, linestyle=":")
-    ax.set_title("Prognose vs. tatsächliche HVPI-Inflationsrate (Testset)")
-    ax.set_ylabel("HVPI-Inflationsrate (YoY, %)")
-    ax.set_xlabel("Datum")
+    ax.set_title("Forecast vs. actual HICP inflation rate (test set)")
+    ax.set_ylabel("HICP inflation rate (YoY, %)")
+    ax.set_xlabel("Date")
     ax.legend(loc="upper left", fontsize=9)
     plt.tight_layout()
     _save("fig_04_prognose.png")
     plt.show()
-    print("Abbildung gespeichert: fig_04_prognose.png")
+    print("Figure saved: fig_04_prognose.png")
 
 
-# ── fig_05: MSE/RMSE-Vergleich ────────────────────────────────────────────────
+# --- fig_05: MSE/RMSE comparison ---
 
 def fig_05_mse_comparison(ctx):
     mse_rw_test    = ctx["mse_rw_test"]
@@ -181,14 +181,14 @@ def fig_05_mse_comparison(ctx):
     mse_enet_test  = ctx["mse_enet_test"]
     mse_lasso_plus = ctx["mse_lasso_plus_test"]
 
-    # Reihenfolge spiegelt Gruppierung: Benchmark → Mit Eigen-Lags → Didaktisch
+    # Order mirrors the grouping: benchmark -> with own lags -> illustrative
     all_models = ["RW", "ADL", "LASSO+HVPI", "OLS", "Ridge", "LASSO", "Elastic Net"]
     mse_vals   = [mse_rw_test, mse_ar_test, mse_lasso_plus,
                   mse_ols_test, mse_ridge_test, mse_lasso_test, mse_enet_test]
     rmse_vals  = [np.sqrt(v) for v in mse_vals]
     colors_bar = ["#9E9E9E", "#795548", "#9C27B0",
                   COLORS["OLS"], COLORS["Ridge"], COLORS["LASSO"], COLORS["ElasticNet"]]
-    # Didaktisch (Indizes 3-6): schraffierten Balken, leicht transparent
+    # Illustrative (indices 3-6): hatched bars, slightly transparent
     hatches    = ["", "", "", "///", "///", "///", "///"]
     alphas     = [0.9, 0.9, 0.9, 0.55, 0.55, 0.55, 0.55]
 
@@ -196,46 +196,46 @@ def fig_05_mse_comparison(ctx):
     x = np.arange(len(all_models)); width = 0.5
 
     for ax, vals, title, ylabel in [
-        (axes[0], mse_vals,  "Test MSE: Gruppen im Vergleich",             "Mean Squared Error"),
-        (axes[1], rmse_vals, "Test-RMSE (Prozentpunkte Inflationsrate)",    "RMSE (%)"),
+        (axes[0], mse_vals,  "Test MSE: groups compared",                  "Mean Squared Error"),
+        (axes[1], rmse_vals, "Test RMSE (percentage points of inflation)",  "RMSE (%)"),
     ]:
         for xi, (val, col, hatch, alpha) in enumerate(
             zip(vals, colors_bar, hatches, alphas)
         ):
             ax.bar(xi, val, width, color=col, alpha=alpha, hatch=hatch,
                    edgecolor="white" if hatch == "" else col)
-        # Trennlinie zwischen LASSO+HVPI und OLS (nach Index 2)
+        # Divider between LASSO+HVPI and OLS (after index 2)
         ax.axvline(2.5, color="black", linewidth=0.8, linestyle="--", alpha=0.4)
         ax.set_xticks(x)
         ax.set_xticklabels(all_models, rotation=20, ha="right")
         ax.set_title(title)
         ax.set_ylabel(ylabel)
 
-    # RMSE-Wert-Label nur auf rechtem Panel
+    # RMSE value label only on the right panel
     for xi, val in enumerate(rmse_vals):
         axes[1].text(xi, val + 0.05, f"{val:.3f}", ha="center", fontsize=8)
 
-    # Legende
+    # Legend
     from matplotlib.patches import Patch as _Patch
     legend_handles = [
         _Patch(color="#9E9E9E",          label="Benchmark (RW, ADL)"),
-        _Patch(color="#9C27B0",          label="Mit Eigen-Lags / Zentraler Vergleich (LASSO+HVPI)"),
+        _Patch(color="#9C27B0",          label="With own lags / core comparison (LASSO+HVPI)"),
         _Patch(color="gray", alpha=0.55, hatch="///",
-               label="Didaktisch – nur Makro, ohne Eigen-Lags (OLS, Ridge, LASSO, EN)"),
+               label="Illustrative - macro only, no own lags (OLS, Ridge, LASSO, EN)"),
     ]
     axes[1].legend(handles=legend_handles, fontsize=8, loc="upper right")
 
     plt.suptitle(
-        "Modellvergleich nach Gruppen · Trennlinie: Benchmark/Zentraler Vergleich | Didaktisch",
+        "Model comparison by group - divider: benchmark/core comparison | illustrative",
         fontsize=10, y=1.01,
     )
     plt.tight_layout()
     _save("fig_05_mse_vergleich.png")
     plt.show()
-    print("Abbildung gespeichert: fig_05_mse_vergleich.png")
+    print("Figure saved: fig_05_mse_vergleich.png")
 
 
-# ── fig_06: LASSO-Pfad ───────────────────────────────────────────────────────
+# --- fig_06: LASSO path ---
 
 def fig_06_lasso_path(X_train_s, y_train, lasso_cv, feat_names):
     alphas_path = np.logspace(-3, 1, 80)
@@ -252,18 +252,18 @@ def fig_06_lasso_path(X_train_s, y_train, lasso_cv, feat_names):
     ax.axvline(lambda_lasso, color="red", linestyle="--", linewidth=1.5,
                label=f"Opt. λ = {lambda_lasso:.5f}")
     ax.axhline(0, color="gray", linewidth=0.5)
-    ax.set_title("LASSO-Koeffizientenpfade (Top-15 Features)")
-    ax.set_xlabel("Regularisierungsparameter λ (log-Skala)")
-    ax.set_ylabel("Koeffizient")
+    ax.set_title("LASSO coefficient paths (top-15 features)")
+    ax.set_xlabel("Regularisation parameter λ (log scale)")
+    ax.set_ylabel("Coefficient")
     ax.legend(loc="upper right", fontsize=8, ncol=2)
     plt.tight_layout()
     _save("fig_06_lasso_path.png")
     plt.show()
-    print("Abbildung gespeichert: fig_06_lasso_path.png")
+    print("Figure saved: fig_06_lasso_path.png")
     return top_idx
 
 
-# ── fig_07: Ridge-Pfad ───────────────────────────────────────────────────────
+# --- fig_07: Ridge path ---
 
 def fig_07_ridge_path(X_train_s, y_train, ridge_cv, top_idx, feat_names):
     from sklearn.linear_model import Ridge as _Ridge
@@ -282,24 +282,24 @@ def fig_07_ridge_path(X_train_s, y_train, ridge_cv, top_idx, feat_names):
     ax.axvline(lambda_ridge, color="orange", linestyle="--", linewidth=1.5,
                label=f"Opt. λ = {lambda_ridge:.2f}")
     ax.axhline(0, color="gray", linewidth=0.5)
-    ax.set_title("Ridge-Koeffizientenpfade (Top-15 Features nach LASSO-Rang)")
-    ax.set_xlabel("Regularisierungsparameter λ (log-Skala)")
-    ax.set_ylabel("Koeffizient")
+    ax.set_title("Ridge coefficient paths (top-15 features by LASSO rank)")
+    ax.set_xlabel("Regularisation parameter λ (log scale)")
+    ax.set_ylabel("Coefficient")
     ax.legend(loc="upper right", fontsize=8, ncol=2)
     plt.tight_layout()
     _save("fig_07_ridge_path.png")
     plt.show()
-    print("Abbildung gespeichert: fig_07_ridge_path.png")
+    print("Figure saved: fig_07_ridge_path.png")
 
 
-# ── fig_08: LASSO-Selektion ──────────────────────────────────────────────────
+# --- fig_08: LASSO selection ---
 
 def fig_08_lasso_selection(lasso_cv, X):
     lasso_coefs = pd.Series(lasso_cv.coef_, index=X.columns)
     selected    = lasso_coefs[lasso_coefs != 0].sort_values(key=np.abs, ascending=False)
     lambda_lasso = lasso_cv.alpha_
 
-    print(f"LASSO selektiert {len(selected)} von {len(lasso_coefs)} Features:\n")
+    print(f"LASSO selects {len(selected)} of {len(lasso_coefs)} features:\n")
     print(selected.to_string())
 
     fig, ax = plt.subplots(figsize=(12, max(5, len(selected) * 0.35)))
@@ -308,16 +308,16 @@ def fig_08_lasso_selection(lasso_cv, X):
     ax.set_yticks(range(len(selected)))
     ax.set_yticklabels(selected.index, fontsize=9)
     ax.axvline(0, color="black", linewidth=0.8)
-    ax.set_title(f"LASSO-Koeffizienten bei opt. λ = {lambda_lasso:.5f} "
-                 f"({len(selected)} selektierte Features)")
-    ax.set_xlabel("Standardisierter Koeffizient")
+    ax.set_title(f"LASSO coefficients at opt. λ = {lambda_lasso:.5f} "
+                 f"({len(selected)} selected features)")
+    ax.set_xlabel("Standardised coefficient")
     plt.tight_layout()
     _save("fig_08_lasso_selektion.png")
     plt.show()
-    print("\nAbbildung gespeichert: fig_08_lasso_selektion.png")
+    print("\nFigure saved: fig_08_lasso_selektion.png")
 
 
-# ── fig_09: LASSO CV-Pfad ────────────────────────────────────────────────────
+# --- fig_09: LASSO CV path ---
 
 def fig_09_lasso_cv_path(lasso_cv):
     cv_mses  = np.mean(lasso_cv.mse_path_, axis=1)
@@ -326,22 +326,22 @@ def fig_09_lasso_cv_path(lasso_cv):
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.semilogx(lasso_cv.alphas_, cv_mses, color="#4CAF50", linewidth=2,
-                label="Mittlerer CV-MSE")
+                label="Mean CV MSE")
     ax.fill_between(lasso_cv.alphas_, cv_mses - cv_stds, cv_mses + cv_stds,
-                    alpha=0.2, color="#4CAF50", label="±1 Std.-Abw.")
+                    alpha=0.2, color="#4CAF50", label="±1 std. dev.")
     ax.axvline(lambda_lasso, color="red", linestyle="--", linewidth=1.5,
                label=f"Min. λ = {lambda_lasso:.5f}")
-    ax.set_title("LASSO Cross-Validation: MSE als Funktion von λ")
-    ax.set_xlabel("Regularisierungsparameter λ (log-Skala)")
-    ax.set_ylabel("Mittlerer CV-MSE")
+    ax.set_title("LASSO cross-validation: MSE as a function of λ")
+    ax.set_xlabel("Regularisation parameter λ (log scale)")
+    ax.set_ylabel("Mean CV MSE")
     ax.legend()
     plt.tight_layout()
     _save("fig_09_lasso_cv_path.png")
     plt.show()
-    print("Abbildung gespeichert: fig_09_lasso_cv_path.png")
+    print("Figure saved: fig_09_lasso_cv_path.png")
 
 
-# ── fig_10: Shrinkage-Vergleich ──────────────────────────────────────────────
+# --- fig_10: shrinkage comparison ---
 
 def fig_10_shrinkage(ols, ridge_cv, lasso_cv, enet_cv):
     fig, axes = plt.subplots(1, 4, figsize=(20, 5))
@@ -359,17 +359,17 @@ def fig_10_shrinkage(ols, ridge_cv, lasso_cv, enet_cv):
         lim = max(np.abs(ols.coef_).max(), np.abs(coef).max()) * 1.05
         ax.plot([-lim, lim], [-lim, lim], "k--", linewidth=0.8, alpha=0.5)
         ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
-        ax.set_title(f"Shrinkage: OLS → {name}")
-        ax.set_xlabel("OLS-Koeffizient")
-        ax.set_ylabel(f"{name}-Koeffizient")
-    plt.suptitle("Shrinkage der Koeffizienten (Diagonale = kein Shrinkage)", y=1.02)
+        ax.set_title(f"Shrinkage: OLS -> {name}")
+        ax.set_xlabel("OLS coefficient")
+        ax.set_ylabel(f"{name} coefficient")
+    plt.suptitle("Shrinkage of coefficients (diagonal = no shrinkage)", y=1.02)
     plt.tight_layout()
     _save("fig_10_shrinkage.png")
     plt.show()
-    print("Abbildung gespeichert: fig_10_shrinkage.png")
+    print("Figure saved: fig_10_shrinkage.png")
 
 
-# ── fig_11: Rolling RMSE ─────────────────────────────────────────────────────
+# --- fig_11: rolling RMSE ---
 
 def fig_11_rolling_rmse(oos_df, y_oos_ref, oos_rmse):
     fig, ax = plt.subplots(figsize=(14, 5))
@@ -381,18 +381,18 @@ def fig_11_rolling_rmse(oos_df, y_oos_ref, oos_rmse):
                 label=f"{col} (Ø {oos_rmse[col]:.3f})",
                 color=COLORS_OOS.get(col, "black"), linewidth=1.5)
     ax.set_title(
-        f"Gleitender RMSE ({WINDOW_ROLLING_RMSE}-Monats-Fenster) – Rolling-Origin Out-of-Sample"
+        f"Rolling RMSE ({WINDOW_ROLLING_RMSE}-month window) - rolling-origin out-of-sample"
     )
-    ax.set_ylabel("RMSE (Prozentpunkte)")
-    ax.set_xlabel("Datum")
+    ax.set_ylabel("RMSE (percentage points)")
+    ax.set_xlabel("Date")
     ax.legend(fontsize=9)
     plt.tight_layout()
     _save("fig_11_rolling_rmse.png")
     plt.show()
-    print("Abbildung gespeichert: fig_11_rolling_rmse.png")
+    print("Figure saved: fig_11_rolling_rmse.png")
 
 
-# ── fig_12: Selektionsstabilität ─────────────────────────────────────────────
+# --- fig_12: selection stability ---
 
 def fig_12_selection_stability(sel_freq, n_windows, lambda_lasso):
     top_vars   = sel_freq.head(TOP_N_STABILITY)
@@ -407,21 +407,21 @@ def fig_12_selection_stability(sel_freq, n_windows, lambda_lasso):
     ax.set_yticklabels(top_vars.index, fontsize=9)
     ax.axvline(0.5,  color="#4CAF50", linestyle="--", linewidth=1.2, label="≥50 % (robust)")
     ax.axvline(0.25, color="#FFC107", linestyle="--", linewidth=1.0, alpha=0.8,
-               label="≥25 % (gelegentlich)")
+               label="≥25 % (occasional)")
     ax.set_xlim(0, 1)
-    ax.set_xlabel("Auswahlhäufigkeit (Anteil der Rolling-Windows)")
+    ax.set_xlabel("Selection frequency (share of rolling windows)")
     ax.set_title(
-        f"LASSO-Selektionsstabilität: Top-{TOP_N_STABILITY} Variablen\n"
-        f"({n_windows} Rolling-Windows, λ = {lambda_lasso:.5f})"
+        f"LASSO selection stability: top-{TOP_N_STABILITY} variables\n"
+        f"({n_windows} rolling windows, λ = {lambda_lasso:.5f})"
     )
     ax.legend(fontsize=10)
     plt.tight_layout()
     _save("fig_12_selektionsstabilitaet.png")
     plt.show()
-    print("Abbildung gespeichert: fig_12_selektionsstabilitaet.png")
+    print("Figure saved: fig_12_selektionsstabilitaet.png")
 
 
-# ── fig_13: Horizonte RMSE ───────────────────────────────────────────────────
+# --- fig_13: horizons RMSE ---
 
 def fig_13_horizons(df_horizons):
     from .config import HORIZONS
@@ -438,49 +438,49 @@ def fig_13_horizons(df_horizons):
         ax.plot(df_horizons.index, df_horizons[col],
                 marker=markers[col], linewidth=1.8, markersize=7,
                 color=col_colors[col], label=col)
-    ax.set_title("RMSE nach Prognose-Horizont h (Monate voraus)")
-    ax.set_xlabel("Prognose-Horizont h (Monate)")
-    ax.set_ylabel("RMSE (Prozentpunkte)")
+    ax.set_title("RMSE by forecast horizon h (months ahead)")
+    ax.set_xlabel("Forecast horizon h (months)")
+    ax.set_ylabel("RMSE (percentage points)")
     ax.set_xticks(HORIZONS)
     ax.legend(fontsize=10)
     plt.tight_layout()
     _save("fig_13_horizonte_rmse.png")
     plt.show()
-    print("Abbildung gespeichert: fig_13_horizonte_rmse.png")
+    print("Figure saved: fig_13_horizonte_rmse.png")
 
 
-# ── Tabellen-Exporte ─────────────────────────────────────────────────────────
+# --- Table exports ---
 
 def export_results_table(results, y_test):
-    _MON_DE = {1: "Jan.", 2: "Feb.", 3: "Mär.", 4: "Apr.", 5: "Mai", 6: "Jun.",
-               7: "Jul.", 8: "Aug.", 9: "Sep.", 10: "Okt.", 11: "Nov.", 12: "Dez."}
-    _t0_tex = f"{_MON_DE[y_test.index[0].month]}~{y_test.index[0].year}"
-    _t1_tex = f"{_MON_DE[y_test.index[-1].month]}~{y_test.index[-1].year}"
+    _MON_EN = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
+               7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
+    _t0_tex = f"{_MON_EN[y_test.index[0].month]}~{y_test.index[0].year}"
+    _t1_tex = f"{_MON_EN[y_test.index[-1].month]}~{y_test.index[-1].year}"
 
-    # Drop Gruppe column for LaTeX body (grouping shown via \midrule separators)
-    results_tex = results.drop(columns=["Gruppe"], errors="ignore").rename(columns={
-        "Test R²":           r"Test $R^2$",
-        "Nicht-Null-Koeff.": r"Koeff.$\neq$0",
+    # Drop Group column for LaTeX body (grouping shown via \midrule separators)
+    results_tex = results.drop(columns=["Group"], errors="ignore").rename(columns={
+        "Test R²":         r"Test $R^2$",
+        "Non-zero coeff.": r"Coeff.$\neq$0",
     })
     latex_results = results_tex.to_latex(
         float_format="%.4f", escape=False,
         caption=(
-            r"Prognosemodelle im Vergleich: mittlerer RMSE, relatives RMSE (RMSE/RW) "
-            f"und $R^2$ im Testset ({_t0_tex}--{_t1_tex}). "
-            r"\emph{Benchmark}: Random Walk und Lag-Modell (ADL, nur HVPI-Eigen-Lags). "
-            r"\emph{Zentraler Vergleich}: LASSO+HVPI (Eigen-Lags + Makro) — "
-            r"ökonomisch sauber, da \emph{ceteris paribus} bzgl.\ Eigen-Lags. "
-            r"\emph{Didaktisch}: OLS–Adaptive LASSO ohne Eigen-Lags "
-            r"(strukturell benachteiligt, zeigen Regularisierung vs.\ OLS-Overfitting)."
+            r"Forecast models compared: mean RMSE, relative RMSE (RMSE/RW) "
+            f"and $R^2$ on the test set ({_t0_tex}--{_t1_tex}). "
+            r"\emph{Benchmark}: random walk and lag model (ADL, HICP own lags only). "
+            r"\emph{Core comparison}: LASSO+HVPI (own lags + macro) - "
+            r"economically sound, as \emph{ceteris paribus} with respect to own lags. "
+            r"\emph{Illustrative}: OLS-Adaptive LASSO without own lags "
+            r"(structurally disadvantaged, show regularisation vs.\ OLS overfitting)."
         ),
         label="tab:ergebnisse",
     )
-    # Insert \midrule between Benchmark / Mit Eigen-Lags / Didaktisch
+    # Insert \midrule between benchmark / with own lags / illustrative
     latex_results = _insert_group_midrules(latex_results, after_rows={1, 2})
 
     with open("results/results_table.tex", "w") as f:
         f.write(latex_results)
-    print("results/results_table.tex gespeichert.")
+    print("results/results_table.tex saved.")
     print(latex_results)
 
 
@@ -493,108 +493,108 @@ def export_horizons_table(df_horizons):
         f.write(df_hz_export.to_latex(
             float_format="%.3f", escape=False,
             caption=(
-                r"RMSE je Prognose-Horizont $h \in \{1,3,6,12\}$ Monate. "
-                r"$\hat{k}$ = Anzahl nicht-null Koeffizienten."
+                r"RMSE per forecast horizon $h \in \{1,3,6,12\}$ months. "
+                r"$\hat{k}$ = number of non-zero coefficients."
             ),
             label="tab:horizonte",
         ))
-    print("Horizont-Tabelle als LaTeX gespeichert: results/horizons_table.tex")
+    print("Horizons table saved as LaTeX: results/horizons_table.tex")
 
 
 def export_stationarity_table(df_stationarity):
-    """Exportiert Stationaritätstabelle nach results/stationarity_table.{csv,tex}."""
+    """Export stationarity table to results/stationarity_table.{csv,tex}."""
     df_stationarity.to_csv("results/stationarity_table.csv", index=False)
-    print("results/stationarity_table.csv gespeichert.")
+    print("results/stationarity_table.csv saved.")
 
     col_rename = {
-        "Reihe":       "Reihe",
-        "Transform.":  "Transform.",
-        "ADF-Stat.":   "ADF-Stat.",
-        "ADF p-Wert":  "ADF $p$",
-        "ADF Urteil":  "ADF",
-        "KPSS-Stat.":  "KPSS-Stat.",
-        "KPSS p-Wert": "KPSS $p$",
-        "KPSS Urteil": "KPSS",
-        "Gesamt":      "Urteil",
+        "Series":       "Series",
+        "Transform.":   "Transform.",
+        "ADF-Stat.":    "ADF stat.",
+        "ADF p-value":  "ADF $p$",
+        "ADF verdict":  "ADF",
+        "KPSS-Stat.":   "KPSS stat.",
+        "KPSS p-value": "KPSS $p$",
+        "KPSS verdict": "KPSS",
+        "Overall":      "Verdict",
     }
     df_tex = df_stationarity.rename(columns=col_rename)
     latex_str = df_tex.to_latex(
         index=False, escape=False,
         caption=(
-            "ADF- und KPSS-Stationaritätstests auf Niveau- und YoY-transformierten Reihen. "
-            "ADF H\\textsubscript{0}: Einheitswurzel; KPSS H\\textsubscript{0}: Stationarität. "
-            "Urteil \\emph{stationär}: ADF verwirft ($p<0{,}05$) und KPSS verwirft nicht ($p\\geq0{,}05$)."
+            "ADF and KPSS stationarity tests on level and YoY-transformed series. "
+            "ADF H\\textsubscript{0}: unit root. KPSS H\\textsubscript{0}: stationarity. "
+            "Verdict \\emph{stationary}: ADF rejects ($p<0.05$) and KPSS does not reject ($p\\geq0.05$)."
         ),
         label="tab:stationaritaet",
     )
     with open("results/stationarity_table.tex", "w") as f:
         f.write(latex_str)
-    print("results/stationarity_table.tex gespeichert.")
+    print("results/stationarity_table.tex saved.")
 
 
 def export_inference_table(df_inference, y_test=None):
-    """Exportiert Einzelsplit-Inferenztabelle (Block-Bootstrap-KI + DM/CW) als CSV + LaTeX."""
+    """Export single-split inference table (block-bootstrap CI + DM/CW) as CSV + LaTeX."""
     df_inference.to_csv("results/inference_table.csv")
-    print("results/inference_table.csv gespeichert.")
+    print("results/inference_table.csv saved.")
 
-    # CI-Spalte für LaTeX-Ausgabe zusammenführen
+    # Merge CI column for LaTeX output
     df_tex = df_inference.copy()
     df_tex["95%-KI"] = df_tex.apply(
         lambda r: f"[{r['CI 2.5%']:.3f}, {r['CI 97.5%']:.3f}]", axis=1
     )
     df_tex = df_tex.drop(columns=["CI 2.5%", "CI 97.5%"])
-    # Stat.-Spalte: entweder "Stat." (nach AP22) oder "DM-Stat" (Rückwärtskompatibilität)
+    # Stat. column: either "Stat." (post AP22) or "DM-Stat" (backward compatibility)
     stat_col = "Stat." if "Stat." in df_tex.columns else "DM-Stat"
     has_test_col = "Test" in df_tex.columns
     has_bonf_col = "p adj. (Bonf.)" in df_tex.columns
     if has_test_col and has_bonf_col:
-        df_tex = df_tex[["Test RMSE", "95%-KI", "Test", stat_col, "p-Wert",
+        df_tex = df_tex[["Test RMSE", "95%-KI", "Test", stat_col, "p-value",
                           "p adj. (Bonf.)", "Sig. adj."]]
         df_tex.columns = [
-            "Test RMSE", r"95\%-KI (Bootstrap)", "Test", "Stat.", "$p$-Wert",
+            "Test RMSE", r"95\% CI (bootstrap)", "Test", "Stat.", "$p$-value",
             r"$p_{\mathrm{adj}}$ (Bonf.)", "Sig. adj.",
         ]
     elif has_test_col:
-        df_tex = df_tex[["Test RMSE", "95%-KI", "Test", stat_col, "p-Wert", "Sig."]]
+        df_tex = df_tex[["Test RMSE", "95%-KI", "Test", stat_col, "p-value", "Sig."]]
         df_tex.columns = [
-            "Test RMSE", r"95\%-KI (Bootstrap)", "Test", "Stat.", "$p$-Wert", "Sig.",
+            "Test RMSE", r"95\% CI (bootstrap)", "Test", "Stat.", "$p$-value", "Sig.",
         ]
     else:
-        df_tex = df_tex[["Test RMSE", "95%-KI", stat_col, "p-Wert", "Sig."]]
+        df_tex = df_tex[["Test RMSE", "95%-KI", stat_col, "p-value", "Sig."]]
         df_tex.columns = [
-            "Test RMSE", r"95\%-KI (Bootstrap)", "Stat.", "$p$-Wert", "Sig.",
+            "Test RMSE", r"95\% CI (bootstrap)", "Stat.", "$p$-value", "Sig.",
         ]
 
     t_note = ""
     if y_test is not None:
-        t_note = f", T={len(y_test)} Testpunkte"
+        t_note = f", T={len(y_test)} test points"
 
     bonf_note = (
-        r" $p_{\mathrm{adj}}$: Bonferroni-Korrektur für Mehrfachtests "
-        r"($p_{\mathrm{adj},i}=\min(n\cdot p_i,1)$; $n$ = Anzahl Tests)."
+        r" $p_{\mathrm{adj}}$: Bonferroni correction for multiple testing "
+        r"($p_{\mathrm{adj},i}=\min(n\cdot p_i,1)$, $n$ = number of tests)."
         if has_bonf_col else ""
     )
 
     latex_str = df_tex.to_latex(
         escape=False,
         float_format="%.4f",
-        na_rep="–",
+        na_rep="-",
         caption=(
-            r"Einzelfenster-Inferenz: Block-Bootstrap 95\%-Konfidenzintervall für "
-            r"den RMSE (zirkulärer Block-Bootstrap, $l=6\approx\sqrt{T}$, $B=2\,000$) "
-            r"und Inferenztest je Modell gegen den "
-            f"Random Walk{t_note}. "
-            r"Nicht-geschachtelte Modelle: Diebold-Mariano-Test (HLN-Korrektur, $h=1$, "
-            r"zweiseitig). Geschachtelte Modelle (Lag-Modell, LASSO+HVPI): "
-            r"Clark-West-Test (2007, einseitig, $H_1$: Modell genauer als RW). "
+            r"Single-window inference: block-bootstrap 95\% confidence interval for "
+            r"the RMSE (circular block bootstrap, $l=6\approx\sqrt{T}$, $B=2\,000$) "
+            r"and inference test per model against the "
+            f"random walk{t_note}. "
+            r"Non-nested models: Diebold-Mariano test (HLN correction, $h=1$, "
+            r"two-sided). Nested models (lag model, LASSO+HVPI): "
+            r"Clark-West test (2007, one-sided, $H_1$: model more accurate than RW). "
             + bonf_note +
-            r" Stat.\ $> 0$: Modell schlägt RW. Sig.: * $p<0{,}10$, ** $p<0{,}05$."
+            r" Stat.\ $> 0$: model beats RW. Sig.: * $p<0.10$, ** $p<0.05$."
         ),
         label="tab:inferenz",
     )
     with open("results/inference_table.tex", "w") as f:
         f.write(latex_str)
-    print("results/inference_table.tex gespeichert.")
+    print("results/inference_table.tex saved.")
     print(df_inference.to_string())
 
 
@@ -604,38 +604,38 @@ def export_sources_table():
     )
 
     rows = [
-        {"Variable": "HVPI", "Quelle": "ECB SDW",
-         "Datensatz": "ICP/M.DE.N.000000.4.INX",
-         "Code / Filter": "DE, 000000 (gesamt), Index 2015=100", "Freq.": "M", "SA": "–"},
+        {"Variable": "HVPI", "Source": "ECB SDW",
+         "Dataset": "ICP/M.DE.N.000000.4.INX",
+         "Code / Filter": "DE, 000000 (total), Index 2015=100", "Freq.": "M", "SA": "-"},
     ]
     for name, nace in PROD_SECTORS.items():
-        rows.append({"Variable": name, "Quelle": "Eurostat",
-                     "Datensatz": "sts_inpr_m",
+        rows.append({"Variable": name, "Source": "Eurostat",
+                     "Dataset": "sts_inpr_m",
                      "Code / Filter": f"nace_r2={nace}, unit=I15, geo=DE",
                      "Freq.": "M", "SA": "NSA"})
     for name, indic in BS_INDICATORS.items():
-        rows.append({"Variable": name, "Quelle": "Eurostat",
-                     "Datensatz": "ei_bsin_m_r2",
+        rows.append({"Variable": name, "Source": "Eurostat",
+                     "Dataset": "ei_bsin_m_r2",
                      "Code / Filter": f"indic={indic}, geo=DE",
                      "Freq.": "M", "SA": "SA"})
     for name, nace in PPI_SECTORS.items():
-        rows.append({"Variable": name, "Quelle": "Eurostat",
-                     "Datensatz": "sts_inppd_m",
+        rows.append({"Variable": name, "Source": "Eurostat",
+                     "Dataset": "sts_inppd_m",
                      "Code / Filter": f"nace_r2={nace}, unit=I15, geo=DE",
                      "Freq.": "M", "SA": "NSA"})
     for name, grp in UNEMP_GROUPS.items():
-        rows.append({"Variable": name, "Quelle": "Eurostat",
-                     "Datensatz": "une_rt_m",
+        rows.append({"Variable": name, "Source": "Eurostat",
+                     "Dataset": "une_rt_m",
                      "Code / Filter": f"sex={grp['sex']}, age={grp['age']}, unit=PC_ACT, geo=DE",
                      "Freq.": "M", "SA": "SA"})
     for name, flt in LCI_SERIES.items():
-        rows.append({"Variable": name, "Quelle": "Eurostat",
-                     "Datensatz": "lc_lci_r2_q",
+        rows.append({"Variable": name, "Source": "Eurostat",
+                     "Dataset": "lc_lci_r2_q",
                      "Code / Filter": (
                          f"nace_r2={flt['nace_r2']}, lcstruct={flt['lcstruct']}, "
-                         f"unit=I20, geo=DE; Q→M via ffill"
+                         f"unit=I20, geo=DE; Q->M via ffill"
                      ),
-                     "Freq.": "Q→M", "SA": "NSA"})
+                     "Freq.": "Q->M", "SA": "NSA"})
 
     df_sources = pd.DataFrame(rows)
     df_sources.to_csv("results/sources_table.csv", index=False)
@@ -643,19 +643,19 @@ def export_sources_table():
         f.write(df_sources.to_latex(
             index=False, escape=True,
             caption=(
-                "Datenquellen: Variable, Quelle, Datensatz-Code und "
-                "Saisonbereinigung (SA = saisonbereinigt, NSA = nicht bereinigt)."
+                "Data sources: variable, source, dataset code and "
+                "seasonal adjustment (SA = seasonally adjusted, NSA = not adjusted)."
             ),
             label="tab:quellen",
         ))
-    print(f"Quellentabelle: {len(df_sources)} Reihen → results/sources_table.csv + .tex")
+    print(f"Sources table: {len(df_sources)} rows -> results/sources_table.csv + .tex")
     print(df_sources.to_string(index=False))
 
 
 def export_robustness_table(df_robustness_mom):
-    """Exportiert MoM-Robustheitstabelle (AP29) nach results/robustness_mom_table.{csv,tex}."""
+    """Export MoM robustness table (AP29) to results/robustness_mom_table.{csv,tex}."""
     df_robustness_mom.to_csv("results/robustness_mom_table.csv")
-    print("results/robustness_mom_table.csv gespeichert.")
+    print("results/robustness_mom_table.csv saved.")
 
     df_tex = df_robustness_mom.rename(columns={
         "Test RMSE (MoM)": "Test RMSE",
@@ -666,85 +666,85 @@ def export_robustness_table(df_robustness_mom):
         float_format="%.4f",
         escape=False,
         caption=(
-            r"Robustheitsprüfung MoM-Spezifikation (AP29): Rolling-Origin-RMSE "
-            r"($h=1$, festes $\lambda$) für die HVPI-Monatsrate (Δ\,\%) "
-            r"statt der Jahresrate (YoY). "
-            r"AO: Atkeson-Ohanian-Benchmark --- rollierender 12-Monats-Mittelwert "
-            r"der MoM-Raten (Atkeson \& Ohanian 2001, \emph{AER} 91). "
-            r"RMSE/RW\,$<1$: Modell unterschreitet den RW im RMSE; "
-            r"RMSE/AO\,$<1$: Modell unterschreitet den AO-Benchmark im RMSE. "
-            r"In der MoM-Spezifikation ist der RW ein schwacher Benchmark, den "
-            r"alle Makromodelle unterschreiten; maßgeblich ist der AO-Benchmark "
-            r"(reine Persistenz), den kein Modell unterschreitet. "
-            r"Der Befund \emph{kein Makro-Mehrwert über die Persistenz hinaus} "
-            r"ist damit robust gegenüber der Wahl YoY\,vs.\,MoM als Zielgröße."
+            r"Robustness check MoM specification (AP29): rolling-origin RMSE "
+            r"($h=1$, fixed $\lambda$) for the HICP monthly rate (Δ\,\%) "
+            r"instead of the annual rate (YoY). "
+            r"AO: Atkeson-Ohanian benchmark - rolling 12-month mean "
+            r"of the MoM rates (Atkeson \& Ohanian 2001, \emph{AER} 91). "
+            r"RMSE/RW\,$<1$: model undercuts the RW in RMSE. "
+            r"RMSE/AO\,$<1$: model undercuts the AO benchmark in RMSE. "
+            r"In the MoM specification the RW is a weak benchmark that "
+            r"all macro models undercut. The decisive benchmark is the AO benchmark "
+            r"(pure persistence), which no model undercuts. "
+            r"The finding \emph{no macro value-added beyond persistence} "
+            r"is thus robust to the choice of YoY\,vs.\,MoM as the target."
         ),
         label="tab:robustheit_mom",
     )
     with open("results/robustness_mom_table.tex", "w") as f:
         f.write(latex_str)
-    print("results/robustness_mom_table.tex gespeichert.")
+    print("results/robustness_mom_table.tex saved.")
     print(df_robustness_mom.to_string())
 
 
 def export_robustness_extended_table(ext_ctx):
-    """Exportiert Sample-Verlängerungs-Robustheit (AP32) nach results/robustness_extended.{csv,tex}."""
+    """Export sample-extension robustness (AP32) to results/robustness_extended.{csv,tex}."""
     df  = ext_ctx["df_robustness_extended"]
     df.to_csv("results/robustness_extended.csv")
-    print("results/robustness_extended.csv gespeichert.")
+    print("results/robustness_extended.csv saved.")
 
-    dropped   = ", ".join(ext_ctx["dropped"]) or "—"
+    dropped   = ", ".join(ext_ctx["dropped"]) or "-"
     post_start = (pd.Timestamp(ext_ctx["shock_end"])
                   + pd.DateOffset(months=1)).strftime("%Y-%m")
     n_post_tests = int(df["p Post"].notna().sum())
-    tex_cols = ["RMSE Schock", "RMSE/RW Schock", "RMSE Post", "RMSE/RW Post",
-                "RMSE Gesamt", "RMSE/RW Gesamt", "Test", "Stat Post",
+    tex_cols = ["RMSE Shock", "RMSE/RW Shock", "RMSE Post", "RMSE/RW Post",
+                "RMSE Total", "RMSE/RW Total", "Test", "Stat Post",
                 "p Post", "p adj. Post", "Sig Post adj."]
     df_tex = df[tex_cols].rename(columns={
-        "RMSE/RW Schock": r"RMSE/RW$_{S}$", "RMSE/RW Post": r"RMSE/RW$_{P}$",
-        "RMSE/RW Gesamt": r"RMSE/RW$_{G}$", "Stat Post": "Stat$_P$",
+        "RMSE/RW Shock": r"RMSE/RW$_{S}$", "RMSE/RW Post": r"RMSE/RW$_{P}$",
+        "RMSE/RW Total": r"RMSE/RW$_{G}$", "Stat Post": "Stat$_P$",
         "p Post": r"$p_P$", "p adj. Post": r"$p_P^{\mathrm{adj}}$",
         "Sig Post adj.": "Sig$_P$",
     })
     latex_str = df_tex.to_latex(
         float_format="%.4f",
         escape=False,
-        na_rep="–",
+        na_rep="-",
         caption=(
-            r"Robustheit Sample-Verlängerung (AP32): Rolling-Origin-RMSE ($h=1$, "
-            r"festes $\lambda$) nach Entfernen der bindenden Reihe \texttt{"
-            + dropped.replace("_", r"\_") + r"}. Das OOS-Fenster verlängert sich von "
-            + ext_ctx["orig_end"].strftime("%Y-%m") + r" auf "
+            r"Sample-extension robustness (AP32): rolling-origin RMSE ($h=1$, "
+            r"fixed $\lambda$) after removing the binding series \texttt{"
+            + dropped.replace("_", r"\_") + r"}. The OOS window extends from "
+            + ext_ctx["orig_end"].strftime("%Y-%m") + r" to "
             + ext_ctx["ext_end"].strftime("%Y-%m") + r" (+"
-            + str(ext_ctx["months_gained"]) + r" Monate); das Post-Schock-Segment ("
+            + str(ext_ctx["months_gained"]) + r" months). The post-shock segment ("
             + post_start + r"--" + ext_ctx["ext_end"].strftime("%Y-%m")
-            + r", $n_P=" + str(ext_ctx["n_post"]) + r"$) testet die These "
-            r"\emph{RW unschlagbar} erstmals out-of-sample im Nicht-Schock-Regime. "
-            r"Index $S$: Schock, $P$: Post-Schock, $G$: gesamt. "
-            r"Post-Test: DM (HLN, zweiseitig) bzw. CW (2007, einseitig, geschachtelt) "
-            r"vs. RW. $p_P^{\mathrm{adj}}$: Bonferroni-Korrektur über die "
-            + str(n_post_tests) + r" parallelen Post-Tests, konsistent zur "
-            r"Einzelfenster-Inferenz (\cref{tab:inferenz}); Sig$_P$ bezieht sich auf "
-            r"$p_P^{\mathrm{adj}}$ (* $p<0{,}10$, ** $p<0{,}05$). Unkorrigiert "
-            r"erreichen AR und LASSO+HVPI $p_P<0{,}05$, nach Korrektur ist jedoch "
-            r"kein Modell mehr auf dem 5\,\%-Niveau signifikant."
+            + r", $n_P=" + str(ext_ctx["n_post"]) + r"$) tests the claim "
+            r"\emph{RW unbeatable} for the first time out-of-sample in the non-shock regime. "
+            r"Index $S$: shock, $P$: post-shock, $G$: total. "
+            r"Post-test: DM (HLN, two-sided) or CW (2007, one-sided, nested) "
+            r"vs. RW. $p_P^{\mathrm{adj}}$: Bonferroni correction over the "
+            + str(n_post_tests) + r" parallel post-tests, consistent with the "
+            r"single-window inference (\cref{tab:inferenz}). Sig$_P$ refers to "
+            r"$p_P^{\mathrm{adj}}$ (* $p<0.10$, ** $p<0.05$). Unadjusted, "
+            r"AR and LASSO+HVPI reach $p_P<0.05$, but after correction "
+            r"no model is significant at the 5\,\% level any more."
         ),
         label="tab:robustheit_extended",
     )
     with open("results/robustness_extended.tex", "w") as f:
         f.write(latex_str)
-    print("results/robustness_extended.tex gespeichert.")
+    print("results/robustness_extended.tex saved.")
     print(df.to_string())
 
 
 def fig_14_giacomini_rossi(gr_ctx, shock_end=None):
-    """Giacomini-Rossi-Fluctuation-Plot: rollierende GR_t(m)-Statistik vs. Zeit.
+    """Giacomini-Rossi fluctuation plot: rolling GR_t(m) statistic vs. time.
 
-    Zeigt für Schlüsselmodelle, *wann* die relative Prädiktivität vs. RW positiv
-    (Modell besser) oder negativ (Modell schlechter) ist und ob das kritische Band
-    überschritten wird. Ergänzt den gepoolten DM/CW-Test um die Zeitdimension.
+    Shows, for key models, *when* the relative predictive ability vs. RW is positive
+    (model better) or negative (model worse) and whether the critical band
+    is exceeded. Adds the time dimension to the pooled DM/CW test.
 
-    Quelle: Giacomini & Rossi (2010), Tab. 1; Giacomini & White (2006).
+    Source: Giacomini & Rossi (2010), Tab. 1. Giacomini & White (2006).
     """
     from .config import REGIME_SHOCK_END
 
@@ -756,7 +756,7 @@ def fig_14_giacomini_rossi(gr_ctx, shock_end=None):
     if shock_end is None:
         shock_end = REGIME_SHOCK_END
 
-    # Priorität: AR und LASSO+HVPI zuerst (geschachtelte Grenzfälle), dann andere
+    # Priority: AR and LASSO+HVPI first (nested borderline cases), then others
     priority = ["AR", "LASSO+HVPI", "Adaptive LASSO", "LASSO", "Ridge"]
     cols     = [c for c in priority if c in gr_df.columns][:4]
 
@@ -770,21 +770,21 @@ def fig_14_giacomini_rossi(gr_ctx, shock_end=None):
 
     fig, ax = plt.subplots(figsize=(14, 6))
 
-    # Kritische Bänder
+    # Critical bands
     ax.axhline( cv_05, color="red",    linestyle="--", linewidth=1.3, alpha=0.85,
-                label=f"+{cv_05:.3f} / −{cv_05:.3f}  (5%-krit., GR 2010, μ={mu:.2f})")
+                label=f"+{cv_05:.3f} / -{cv_05:.3f}  (5% crit., GR 2010, μ={mu:.2f})")
     ax.axhline(-cv_05, color="red",    linestyle="--", linewidth=1.3, alpha=0.85)
     ax.axhline( cv_10, color="darkorange", linestyle=":",  linewidth=1.0, alpha=0.7,
-                label=f"+{cv_10:.3f} / −{cv_10:.3f}  (10%-krit.)")
+                label=f"+{cv_10:.3f} / -{cv_10:.3f}  (10% crit.)")
     ax.axhline(-cv_10, color="darkorange", linestyle=":",  linewidth=1.0, alpha=0.7)
     ax.axhline(0, color="gray", linewidth=0.9, linestyle="-", alpha=0.4)
 
-    # Regime-Trennung
+    # Regime split
     shock_ts = pd.Timestamp(shock_end)
     ax.axvline(shock_ts, color="#555", linestyle="--", linewidth=1.1, alpha=0.7,
-               label=f"Regime-Trennung ({shock_end}): Schock → Disinflation")
+               label=f"Regime split ({shock_end}): shock -> disinflation")
 
-    # GR-Statistiken je Modell
+    # GR statistics per model
     for col in cols:
         series = gr_df[col].dropna()
         ax.plot(series.index, series.values,
@@ -792,103 +792,103 @@ def fig_14_giacomini_rossi(gr_ctx, shock_end=None):
                 linewidth=1.8, marker="o", markersize=3.5, alpha=0.9)
 
     ax.set_title(
-        f"Giacomini-Rossi-Fluctuation-Test: zeitvariable Prädiktivität vs. Random Walk\n"
-        f"(rollierende DM-Statistik, Fenster m={m}, μ={mu:.2f}; "
-        f"GR_t>0: Modell besser als RW; krit. Werte: Giacomini & Rossi 2010, Tab. 1)"
+        f"Giacomini-Rossi fluctuation test: time-varying predictive ability vs. random walk\n"
+        f"(rolling DM statistic, window m={m}, μ={mu:.2f}, "
+        f"GR_t>0: model better than RW, crit. values: Giacomini & Rossi 2010, Tab. 1)"
     )
-    ax.set_xlabel("Datum (Ende des rollierenden Fensters)")
-    ax.set_ylabel("GR-Statistik  GR_t(m)")
+    ax.set_xlabel("Date (end of the rolling window)")
+    ax.set_ylabel("GR statistic  GR_t(m)")
     ax.legend(fontsize=9, loc="upper left")
     plt.tight_layout()
     _save("fig_14_giacomini_rossi.png")
     plt.show()
-    print("Abbildung gespeichert: fig_14_giacomini_rossi.png")
+    print("Figure saved: fig_14_giacomini_rossi.png")
 
 
 def export_gr_table(gr_ctx):
-    """Exportiert GR-Fluctuation-Statistiken je Modell als CSV."""
+    """Export GR fluctuation statistics per model as CSV."""
     gr_df = gr_ctx["gr_df"]
     gr_df.to_csv("results/gr_table.csv")
-    print(f"results/gr_table.csv gespeichert. "
-          f"({len(gr_df)} Zeitpunkte, m={gr_ctx['m']}, μ={gr_ctx['mu']:.3f})")
+    print(f"results/gr_table.csv saved. "
+          f"({len(gr_df)} time points, m={gr_ctx['m']}, μ={gr_ctx['mu']:.3f})")
     print(f"  cv_5%={gr_ctx['cv_05']:.3f}, cv_10%={gr_ctx['cv_10']:.3f} "
           f"(Giacomini & Rossi 2010, Tab. 1)")
 
 
 def export_regime_table(df_regime, shock_end="2023-03", n_shock=None, n_disfl=None):
-    """Exportiert Regime-Tabelle (Schock vs. Disinflation) nach results/regime_table.{csv,tex}."""
+    """Export regime table (shock vs. disinflation) to results/regime_table.{csv,tex}."""
     df_regime.to_csv("results/regime_table.csv")
-    print("results/regime_table.csv gespeichert.")
+    print("results/regime_table.csv saved.")
 
     disfl_start = (pd.Timestamp(shock_end) + pd.DateOffset(months=1)).strftime("%Y-%m")
     n_info = (
-        f"$n_{{\\text{{Schock}}}}={n_shock}$, $n_{{\\text{{Disinfl.}}}}={n_disfl}$. "
+        f"$n_{{\\text{{Shock}}}}={n_shock}$, $n_{{\\text{{Disinfl.}}}}={n_disfl}$. "
         if n_shock is not None else ""
     )
     latex_str = df_regime.to_latex(
         float_format="%.4f",
         escape=False,
         caption=(
-            r"Rolling-Origin-RMSE und RMSE/RW je Inflationsregime ($h=1$, festes $\lambda$). "
-            r"Schock: Energie-Preisschock (steigend/Peak, 2021-06--" + shock_end + r"). "
+            r"Rolling-origin RMSE and RMSE/RW per inflation regime ($h=1$, fixed $\lambda$). "
+            r"Shock: energy price shock (rising/peak, 2021-06--" + shock_end + r"). "
             r"Disinflation: " + disfl_start + r"--2024-10. "
             + n_info
-            + r"RMSE/RW $< 1$: Modell unterschreitet den RW im RMSE; "
-            r"RMSE/RW $= 1{,}00$: Referenz (RW). "
-            r"Kein Modell schlägt den RW in einem der beiden Regime \emph{signifikant}; "
-            r"im Disinflationsregime unterschreiten ihn AR und LASSO+HVPI zwar im "
-            r"Punkt-RMSE (je $0{,}92$), ohne statistische Signifikanz. "
-            r"Die Aussage ist nicht auf das Energiepreis-Schock-Regime beschränkt."
+            + r"RMSE/RW $< 1$: model undercuts the RW in RMSE. "
+            r"RMSE/RW $= 1.00$: reference (RW). "
+            r"No model beats the RW \emph{significantly} in either regime. "
+            r"In the disinflation regime AR and LASSO+HVPI do undercut it in "
+            r"point RMSE ($0.92$ each), but without statistical significance. "
+            r"The statement is not limited to the energy price shock regime."
         ),
         label="tab:regime",
     )
     with open("results/regime_table.tex", "w") as f:
         f.write(latex_str)
-    print("results/regime_table.tex gespeichert.")
+    print("results/regime_table.tex saved.")
     print(df_regime.to_string())
 
 
-# ── Selektionsdeutung (AP30) ──────────────────────────────────────────────────
+# --- Selection interpretation (AP30) ---
 
 def export_selection_economic(sel_regime_ctx):
-    """Exportiert regimeabhängige Selektionshäufigkeit je ökonomische Gruppe."""
+    """Export regime-dependent selection frequency per economic group."""
     df  = sel_regime_ctx["df_sel_groups"]
     n_s = sel_regime_ctx["n_shock_sel"]
     n_d = sel_regime_ctx["n_disfl_sel"]
 
     df.to_csv("results/selection_economic.csv")
-    print("results/selection_economic.csv gespeichert.")
+    print("results/selection_economic.csv saved.")
 
     latex_str = df.to_latex(
         float_format="%.3f",
         escape=False,
         caption=(
-            r"LASSO-Selektionshäufigkeit je ökonomische Variablengruppe "
-            r"(mittlerer Anteil der Rolling-Fenster, in denen ≥\,1 Variable der Gruppe "
-            r"selektiert wurde). "
-            r"Schock: Energie-Preisschock-Regime (2021-06--2023-03, "
-            f"$n_{{\\text{{Schock}}}}={n_s}$). "
+            r"LASSO selection frequency per economic variable group "
+            r"(mean share of rolling windows in which ≥\,1 variable of the group "
+            r"was selected). "
+            r"Shock: energy price shock regime (2021-06--2023-03, "
+            f"$n_{{\\text{{Shock}}}}={n_s}$). "
             r"Disinflation: 2023-04--2024-10 "
             f"($n_{{\\text{{Disinfl.}}}}={n_d}$). "
-            r"Kostendruck-Hypothese (Cost-Push/Phillips-Kurve): "
-            r"PPI- und LCI-Variablen sollten im Schock-Regime häufiger selektiert werden."
+            r"Cost-push hypothesis (cost-push/Phillips curve): "
+            r"PPI and LCI variables should be selected more often in the shock regime."
         ),
         label="tab:selection_economic",
     )
     with open("results/selection_economic.tex", "w") as f:
         f.write(latex_str)
-    print("results/selection_economic.tex gespeichert.")
+    print("results/selection_economic.tex saved.")
     print(df.to_string())
 
 
-# ── README Auto-Sync ─────────────────────────────────────────────────────────
+# --- README auto-sync ---
 
 def update_readmes(ctx):
-    """Regeneriert den <!-- RESULTS:BEGIN/END --> Block in README.md und README_DE.md."""
+    """Regenerate the <!-- RESULTS:BEGIN/END --> block in README.md and README_DE.md."""
     from .config import ROOT, TEST_MONTHS
 
     def _neg(v, d=2):
-        return f"{v:.{d}f}".replace("-", "−")
+        return f"{v:.{d}f}"
 
     y      = ctx["y"]
     y_test = ctx["y_test"]
@@ -935,94 +935,94 @@ def update_readmes(ctx):
     r2_ridge_test     = ctx["r2_ridge_test"]
     r2_ols_test       = ctx["r2_ols_test"]
 
-    # DM-Signifikanzmarker aus df_inference (falls vorhanden)
+    # DM significance markers from df_inference (if present)
     df_inf = ctx.get("df_inference")
     def _sig(model_name):
         if df_inf is None or model_name not in df_inf.index:
             return ""
         s = df_inf.loc[model_name, "Sig."]
-        return f" {s}" if s not in ("–", "") else ""
+        return f" {s}" if s not in ("-", "–", "") else ""
 
     block_de = (
-        f"Datensatz: **{_n_total} Beobachtungen** ({_d0} – {_d1}), "
+        f"Datensatz: **{_n_total} Beobachtungen** ({_d0} - {_d1}), "
         f"davon **{_n_train} Training / {TEST_MONTHS} Test**\n"
-        f"(Testfenster {_t0} – {_t1}), **{_n_feat} Features**.\n\n"
+        f"(Testfenster {_t0} - {_t1}), **{_n_feat} Features**.\n\n"
         f"**Testfenster (fester chronologischer Split), RMSE in Prozentpunkten der Inflationsrate.**\n"
-        f"Test = DM (nicht-geschachtelt) oder CW (geschachtelt, Clark & West 2007); n.s. = nicht signifikant.\n\n"
+        f"Test = DM (nicht-geschachtelt) oder CW (geschachtelt, Clark & West 2007). n.s. = nicht signifikant.\n\n"
         f"| Modell | λ | Test-RMSE | RMSE/RW | Test-R² | Test | Koeff. ≠ 0 |\n"
         f"|--------|----------:|----------:|--------:|--------:|-----:|-----------:|\n"
-        f"| *— Benchmark —* | | | | | | |\n"
-        f"| **Random Walk** | – | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | – | – |\n"
-        f"| Lag-Modell (ADL) | – | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag-Modell (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
-        f"| *— Zentraler Vergleich: Eigen-Lags + Makro (ökonomisch sauber, ceteris paribus) —* | | | | | | |\n"
+        f"| *- Benchmark -* | | | | | | |\n"
+        f"| **Random Walk** | - | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | - | - |\n"
+        f"| Lag-Modell (ADL) | - | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag model (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| *- Zentraler Vergleich: Eigen-Lags + Makro (ökonomisch sauber, ceteris paribus) -* | | | | | | |\n"
         f"| LASSO + HVPI-Lags | {lasso_plus_alpha:.3f} | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
-        f"| *— Didaktisch: nur Makro, ohne Eigen-Lags (strukturell benachteiligt) —* | | | | | | |\n"
+        f"| *- Didaktisch: nur Makro, ohne Eigen-Lags (strukturell benachteiligt) -* | | | | | | |\n"
         f"| Adaptive LASSO | {lambda_alasso:.5f} | {_alasso:.2f} | {_alasso/_rw:.2f} | {r2_alasso_test:.2f} | DM {_sig('Adaptive LASSO') or 'n.s.'} | {n_nonzero_alasso} / {_n_feat} |\n"
         f"| LASSO | {lambda_lasso:.3f} | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | DM {_sig('LASSO') or 'n.s.'} | {_nz_l} / {_n_feat} |\n"
         f"| Elastic Net | {lambda_enet:.3f} | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
         f"| Ridge | {lambda_ridge:.1f} | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
-        f"| OLS | – | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
-        f"**Zentraler Befund:** Lag-Modell (ADL, nur Eigen-Lags) RMSE/RW = {_ar/_rw:.2f} · "
-        f"LASSO+HVPI (Eigen-Lags + Makro) RMSE/RW = {_lp/_rw:.2f} → "
-        f"Makro-Mehrwert über die Persistenz hinaus ≈ 0 (ceteris paribus).\n"
-        f"Die reinen Makro-Modelle (didaktischer Teil) fehlt der stärkste Einzelprädiktor (HVPI-Lag) — "
-        f"ihr Abschneiden (RMSE/RW ≥ {min(_alasso/_rw, _las/_rw, _en/_rw, _ri/_rw):.2f}) "
-        f"illustriert den Nutzen von Regularisierung vs. OLS-Overfitting, "
+        f"| OLS | - | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
+        f"**Zentraler Befund:** Lag-Modell (ADL, nur Eigen-Lags) RMSE/RW = {_ar/_rw:.2f} und "
+        f"LASSO+HVPI (Eigen-Lags + Makro) RMSE/RW = {_lp/_rw:.2f}, also "
+        f"Makro-Mehrwert über die Persistenz hinaus etwa 0 (ceteris paribus).\n"
+        f"Den reinen Makro-Modellen (didaktischer Teil) fehlt der stärkste Einzelprädiktor (HVPI-Lag). "
+        f"Ihr Abschneiden (RMSE/RW ≥ {min(_alasso/_rw, _las/_rw, _en/_rw, _ri/_rw):.2f}) "
+        f"illustriert den Nutzen von Regularisierung gegenüber OLS-Overfitting, "
         f"ist aber **kein fairer Vergleich gegen den RW**.\n\n"
-        f"Inferenztests (T={TEST_MONTHS}): DM = Diebold-Mariano (HLN-korr., zweiseitig) für reine Makro-Modelle; "
+        f"Inferenztests (T={TEST_MONTHS}): DM = Diebold-Mariano (HLN-korr., zweiseitig) für reine Makro-Modelle. "
         f"CW = Clark-West (2007, einseitig) für Lag-Modell und LASSO+HVPI (geschachtelt in RW). "
         f"Kein Modell schlägt den RW signifikant (geringe Power bei T={TEST_MONTHS}). Block-Bootstrap-KI: `results/inference_table.csv`.\n"
-        f"*Hinweis: Der RW-R² spiegelt die Persistenz der YoY-Rate wider (ŷ_t = y_{{t−1}} erklärt die "
-        f"Autokorrelation); er ist nicht mit dem Modell-R² gleichzusetzen.*\n\n"
+        f"*Hinweis: Der RW-R² spiegelt die Persistenz der YoY-Rate wider (ŷ_t = y_{{t-1}} erklärt die "
+        f"Autokorrelation). Er ist nicht mit dem Modell-R² gleichzusetzen.*\n\n"
         f"**Robustheitscheck (Rolling-Origin, Expanding Window):** "
-        f"RW {ro['RW']:.2f} · AR {ro['AR']:.2f} · LASSO+HVPI {ro['LASSO+HVPI']:.2f} ·\n"
-        f"LASSO {ro['LASSO']:.2f} · Elastic Net {ro['Elastic Net']:.2f} · "
-        f"Ridge {ro['Ridge']:.2f} · OLS {ro['OLS']:.2f}. "
+        f"RW {ro['RW']:.2f} - AR {ro['AR']:.2f} - LASSO+HVPI {ro['LASSO+HVPI']:.2f} -\n"
+        f"LASSO {ro['LASSO']:.2f} - Elastic Net {ro['Elastic Net']:.2f} - "
+        f"Ridge {ro['Ridge']:.2f} - OLS {ro['OLS']:.2f}. "
         f"Die geschachtelten Modelle (AR, LASSO+HVPI)\n"
         f"erreichen den RW hier knapp, schlagen ihn aber nicht nachweisbar "
         f"(Clark-West-Test n.s.)."
     )
 
     block_en = (
-        f"Dataset: **{_n_total} observations** ({_d0} – {_d1}), "
+        f"Dataset: **{_n_total} observations** ({_d0} - {_d1}), "
         f"of which **{_n_train} training / {TEST_MONTHS} test**\n"
-        f"(test window {_t0} – {_t1}), **{_n_feat} features**.\n\n"
+        f"(test window {_t0} - {_t1}), **{_n_feat} features**.\n\n"
         f"**Test window (fixed chronological split), RMSE in percentage points of the inflation rate.**\n"
-        f"Test = DM (non-nested) or CW (nested, Clark & West 2007); n.s. = not significant.\n\n"
+        f"Test = DM (non-nested) or CW (nested, Clark & West 2007), n.s. = not significant.\n\n"
         f"| Model | λ | Test RMSE | RMSE/RW | Test R² | Test | Coeff. ≠ 0 |\n"
         f"|-------|----------:|----------:|--------:|--------:|-----:|-----------:|\n"
-        f"| *— Benchmark —* | | | | | | |\n"
-        f"| **Random Walk** | – | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | – | – |\n"
-        f"| Lag model (ADL) | – | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag-Modell (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
-        f"| *— Central comparison: own lags + macro (economically clean, ceteris paribus) —* | | | | | | |\n"
+        f"| *- Benchmark -* | | | | | | |\n"
+        f"| **Random Walk** | - | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | - | - |\n"
+        f"| Lag model (ADL) | - | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag model (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| *- Central comparison: own lags + macro (economically clean, ceteris paribus) -* | | | | | | |\n"
         f"| LASSO + HICP lags | {lasso_plus_alpha:.3f} | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
-        f"| *— Didactic: macro only, no own lags (structurally disadvantaged) —* | | | | | | |\n"
+        f"| *- Didactic: macro only, no own lags (structurally disadvantaged) -* | | | | | | |\n"
         f"| Adaptive LASSO | {lambda_alasso:.5f} | {_alasso:.2f} | {_alasso/_rw:.2f} | {r2_alasso_test:.2f} | DM {_sig('Adaptive LASSO') or 'n.s.'} | {n_nonzero_alasso} / {_n_feat} |\n"
         f"| LASSO | {lambda_lasso:.3f} | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | DM {_sig('LASSO') or 'n.s.'} | {_nz_l} / {_n_feat} |\n"
         f"| Elastic Net | {lambda_enet:.3f} | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
         f"| Ridge | {lambda_ridge:.1f} | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
-        f"| OLS | – | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
-        f"**Central finding:** Lag model (ADL, own lags only) RMSE/RW = {_ar/_rw:.2f} · "
-        f"LASSO+HICP (own lags + macro) RMSE/RW = {_lp/_rw:.2f} → "
+        f"| OLS | - | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
+        f"**Central finding:** Lag model (ADL, own lags only) RMSE/RW = {_ar/_rw:.2f} - "
+        f"LASSO+HICP (own lags + macro) RMSE/RW = {_lp/_rw:.2f}, so "
         f"macro value-added beyond persistence ≈ 0 (ceteris paribus).\n"
-        f"The pure macro models (didactic group) lack the strongest single predictor (HICP lag) — "
+        f"The pure macro models (didactic group) lack the strongest single predictor (HICP lag) - "
         f"their performance (RMSE/RW ≥ {min(_alasso/_rw, _las/_rw, _en/_rw, _ri/_rw):.2f}) "
         f"illustrates regularization vs. OLS overfitting but is **not a fair race against the RW**.\n\n"
-        f"Inference tests (T={TEST_MONTHS}): DM = Diebold-Mariano (HLN-corrected, two-sided) for pure macro models; "
+        f"Inference tests (T={TEST_MONTHS}): DM = Diebold-Mariano (HLN-corrected, two-sided) for pure macro models, "
         f"CW = Clark-West (2007, one-sided) for lag model and LASSO+HICP (nested within RW). "
         f"No model beats the RW significantly (low power at T={TEST_MONTHS}). Block-bootstrap CIs: `results/inference_table.csv`.\n"
         f"*Note: The RW R² reflects the persistence (autocorrelation) of the YoY series "
-        f"(ŷ_t = y_{{t−1}}); it is not comparable to the model R².*\n\n"
-        f"**Robustness check (Rolling-Origin, expanding window):** "
-        f"RW {ro['RW']:.2f} · AR {ro['AR']:.2f} · LASSO+HICP {ro['LASSO+HVPI']:.2f} ·\n"
-        f"LASSO {ro['LASSO']:.2f} · Elastic Net {ro['Elastic Net']:.2f} · "
-        f"Ridge {ro['Ridge']:.2f} · OLS {ro['OLS']:.2f}. "
+        f"(ŷ_t = y_{{t-1}}), it is not comparable to the model R².*\n\n"
+        f"**Robustness check (rolling-origin, expanding window):** "
+        f"RW {ro['RW']:.2f} - AR {ro['AR']:.2f} - LASSO+HICP {ro['LASSO+HVPI']:.2f} -\n"
+        f"LASSO {ro['LASSO']:.2f} - Elastic Net {ro['Elastic Net']:.2f} - "
+        f"Ridge {ro['Ridge']:.2f} - OLS {ro['OLS']:.2f}. "
         f"The nested models (AR, LASSO+HICP)\n"
         f"nearly match the RW here, but do not beat it significantly "
         f"(Clark-West test n.s.)."
     )
 
-    # ── Robustheit Sample-Verlängerung (AP32) — optionaler Zusatzabsatz ────────
+    # --- Sample-extension robustness (AP32) - optional additional paragraph ---
     if ext:
         df_e   = ext["df_robustness_extended"]
         non_rw = df_e.drop("RW", errors="ignore")
@@ -1031,13 +1031,13 @@ def update_readmes(ctx):
         post0  = (pd.Timestamp(ext["shock_end"]) + pd.DateOffset(months=1)).strftime("%Y-%m")
         post1  = ext["ext_end"].strftime("%Y-%m")
         sig_win = non_rw[(non_rw["Stat Post"] > 0) & (non_rw["Sig Post"].isin(["*", "**"]))]
-        drop_str = ", ".join(ext["dropped"]) or "—"
+        drop_str = ", ".join(ext["dropped"]) or "-"
 
         if len(sig_win) > 0:
             verdict_de = (f"schlagen **{', '.join(sig_win.index)}** den RW signifikant "
-                          f"(DM/CW p<0,10; bestes {best_p}, RMSE/RW={val_p:.2f})")
+                          f"(DM/CW p<0,10, bestes {best_p}, RMSE/RW={val_p:.2f})")
             verdict_en = (f"**{', '.join(sig_win.index)}** beat the RW significantly "
-                          f"(DM/CW p<0.10; best {best_p}, RMSE/RW={val_p:.2f})")
+                          f"(DM/CW p<0.10, best {best_p}, RMSE/RW={val_p:.2f})")
         elif val_p < 1.0:
             verdict_de = (f"unterbietet das beste Modell ({best_p}) den RW in der "
                           f"Punktschätzung (RMSE/RW={val_p:.2f}), aber **nicht signifikant** (DM/CW n.s.)")
@@ -1051,19 +1051,19 @@ def update_readmes(ctx):
         ext_de = (
             f"\n\n**Robustheit Sample-Verlängerung (AP32):** Entfernt man die einzige "
             f"bindende Reihe (`{drop_str}`, endet 2024-09), reicht das OOS-Fenster bis "
-            f"**{post1}** (+{ext['months_gained']} Monate; Post-Schock-Segment "
-            f"{post0}–{post1}, n={ext['n_post']}, vorher 14). Im ruhigeren Post-Schock-"
-            f"Regime {verdict_de}. → Die These *RW unschlagbar* ist damit erstmals "
+            f"**{post1}** (+{ext['months_gained']} Monate, Post-Schock-Segment "
+            f"{post0}-{post1}, n={ext['n_post']}, vorher 14). Im ruhigeren Post-Schock-"
+            f"Regime {verdict_de}. Damit ist die These *RW unschlagbar* erstmals "
             f"out-of-sample außerhalb des Energiepreisschocks geprüft. "
             f"Tabelle: `results/robustness_extended.csv`."
         )
         ext_en = (
             f"\n\n**Sample-extension robustness (AP32):** Dropping the single binding "
             f"series (`{drop_str}`, ends 2024-09) extends the OOS window to **{post1}** "
-            f"(+{ext['months_gained']} months; post-shock segment {post0}–{post1}, "
+            f"(+{ext['months_gained']} months, post-shock segment {post0}-{post1}, "
             f"n={ext['n_post']}, was 14). In the calmer post-shock regime {verdict_en}. "
-            f"→ The *RW-unbeatable* claim is thus tested out-of-sample outside the energy "
-            f"price shock for the first time. Table: `results/robustness_extended.csv`."
+            f"This is the first time the *RW-unbeatable* claim is tested out-of-sample "
+            f"outside the energy price shock. Table: `results/robustness_extended.csv`."
         )
         block_de += ext_de
         block_en += ext_en
@@ -1079,20 +1079,20 @@ def update_readmes(ctx):
         new = _MARKER.sub(
             f"<!-- RESULTS:BEGIN -->\n{block}\n<!-- RESULTS:END -->", txt
         )
-        assert new != txt or block in txt, f"{fpath}: Marker nicht gefunden"
+        assert new != txt or block in txt, f"{fpath}: marker not found"
         fpath.write_text(new, encoding="utf-8")
-        print(f"{fpath} ✓")
+        print(f"{fpath} OK")
 
-    print("\nREADME auto-sync abgeschlossen.")
-    print(f"  {_n_total} Beob. ({_d0}–{_d1}), {_n_feat} Features, "
-          f"Test {_t0}–{_t1}")
+    print("\nREADME auto-sync complete.")
+    print(f"  {_n_total} obs. ({_d0}-{_d1}), {_n_feat} features, "
+          f"Test {_t0}-{_t1}")
     print(f"  RW {_rw:.4f}  |  LASSO {_las:.4f}  |  OLS {_ols:.4f}")
 
 
-# ── Zusammenfassung ──────────────────────────────────────────────────────────
+# --- Summary ---
 
 def print_summary(ctx):
-    """Druckt die Zusammenfassung (entspricht Cell 51 im Originalnotebook)."""
+    """Print the summary (corresponds to cell 51 in the original notebook)."""
     X       = ctx["X"]
     y       = ctx["y"]
     y_test  = ctx["y_test"]
@@ -1100,25 +1100,25 @@ def print_summary(ctx):
     selected = ctx["selected"]
 
     print("=" * 75)
-    print("ZUSAMMENFASSUNG DER ERGEBNISSE")
+    print("SUMMARY OF RESULTS")
     print("=" * 75)
-    print(f"Datensatz:  {X.shape[0]} Monate, {X.shape[1]} Features")
-    print(f"Zeitraum:   {y.index[0].strftime('%Y-%m')} – {y.index[-1].strftime('%Y-%m')}")
-    print(f"Test-Split: {len(y_test)} Monate (chronologisch)")
+    print(f"Dataset:    {X.shape[0]} months, {X.shape[1]} features")
+    print(f"Period:     {y.index[0].strftime('%Y-%m')} - {y.index[-1].strftime('%Y-%m')}")
+    print(f"Test split: {len(y_test)} months (chronological)")
     print()
-    print(f"{'Modell':<16} {'Test-RMSE':>10} {'RMSE/RW':>9} {'Test-R²':>10} {'Koeff.≠0':>10}")
+    print(f"{'Model':<16} {'Test-RMSE':>10} {'RMSE/RW':>9} {'Test-R²':>10} {'Coeff.≠0':>10}")
 
     rmse_rw = ctx["rmse_rw_test"]
 
     _groups = [
-        ("── Benchmark ──────────────────────────────────────────────────────", [
+        ("-- Benchmark ------------------------------------------------------", [
             ("Random Walk",  ctx["rmse_rw_test"],            ctx["r2_rw_test"],        "-"),
             ("ADL",          ctx["rmse_ar_test"],            ctx["r2_ar_test"],        str(len(AR_LAGS))),
         ]),
-        ("── Zentraler Vergleich: Eigen-Lags + Makro (ceteris paribus) ─────", [
+        ("-- Core comparison: own lags + macro (ceteris paribus) ----------", [
             ("LASSO+HVPI",   ctx["rmse_lasso_plus_test"],    ctx["r2_lasso_plus_test"], str(ctx["n_nonzero_plus"])),
         ]),
-        ("── Didaktisch: nur Makro, ohne Eigen-Lags (strukturell benacht.) ──", [
+        ("-- Illustrative: macro only, no own lags (structurally disadv.) --", [
             ("OLS",          np.sqrt(ctx["mse_ols_test"]),   ctx["r2_ols_test"],       str(int(np.sum(ctx["ols"].coef_ != 0)))),
             ("Ridge",        np.sqrt(ctx["mse_ridge_test"]), ctx["r2_ridge_test"],     str(len(ctx["ridge_cv"].coef_))),
             ("LASSO",        np.sqrt(ctx["mse_lasso_test"]), ctx["r2_lasso_test"],     str(ctx["n_nonzero"])),
@@ -1137,34 +1137,34 @@ def print_summary(ctx):
     print("\n" + "=" * 75)
     _ar  = ctx["rmse_ar_test"]
     _lp  = ctx["rmse_lasso_plus_test"]
-    print(f"\nZentraler Befund (ceteris paribus):")
-    print(f"  ADL (nur Eigen-Lags):       RMSE/RW = {_ar/rmse_rw:.3f}")
-    print(f"  LASSO+HVPI (Eigen-Lags + Makro): RMSE/RW = {_lp/rmse_rw:.3f}")
-    print(f"  → Makro-Mehrwert über Persistenz hinaus ≈ {(_lp - _ar)/rmse_rw:+.3f} (RMSE/RW)")
+    print(f"\nCore finding (ceteris paribus):")
+    print(f"  ADL (own lags only):       RMSE/RW = {_ar/rmse_rw:.3f}")
+    print(f"  LASSO+HVPI (own lags + macro): RMSE/RW = {_lp/rmse_rw:.3f}")
+    print(f"  → macro value-added beyond persistence ≈ {(_lp - _ar)/rmse_rw:+.3f} (RMSE/RW)")
     best = results["Test RMSE"].astype(float).idxmin()
-    print(f"\nBestes Modell nach Test-RMSE: {best}")
+    print(f"\nBest model by test RMSE: {best}")
     print()
-    print("Selektierte Variablengruppen (LASSO):")
+    print("Selected variable groups (LASSO):")
     for grp, prefix in [
-        ("Industrieproduktion", "IP_"),
-        ("Business Surveys",    "BS_"),
-        ("Produzentenpreise",   "PPI_"),
-        ("Arbeitsmarkt",        "ALQ_"),
-        ("Lohnkosten",          "LCI_"),
+        ("Industrial production", "IP_"),
+        ("Business surveys",      "BS_"),
+        ("Producer prices",       "PPI_"),
+        ("Labour market",         "ALQ_"),
+        ("Labour costs",          "LCI_"),
     ]:
         sel_grp = [c for c in selected.index if prefix in c]
         if sel_grp:
-            print(f"  {grp}: {len(sel_grp)} Feature(s) – {sel_grp}")
+            print(f"  {grp}: {len(sel_grp)} feature(s) - {sel_grp}")
 
 
-# ── Hilfsfunktionen ──────────────────────────────────────────────────────────
+# --- Helper functions ---
 
 def _insert_group_midrules(latex_str: str, after_rows: set) -> str:
-    """Fügt nach bestimmten (0-indizierten) Datenzeilen \\midrule in einen
-    pandas-LaTeX-String ein — zur visuellen Gruppen-Trennung in der Tabelle.
+    """Insert \\midrule after specific (0-indexed) data rows into a
+    pandas LaTeX string - for visual group separation in the table.
 
-    after_rows: Menge von 0-indizierten Zeilennummern, nach denen ein
-    \\midrule eingefügt werden soll.
+    after_rows: set of 0-indexed row numbers after which a
+    \\midrule should be inserted.
     """
     lines = latex_str.split("\n")
     result = []
@@ -1173,12 +1173,12 @@ def _insert_group_midrules(latex_str: str, after_rows: set) -> str:
 
     for line in lines:
         stripped = line.strip()
-        # Die erste \midrule trennt Kopfzeile von Daten
+        # The first \midrule separates the header from the data
         if stripped == r"\midrule" and not past_header_midrule:
             past_header_midrule = True
             result.append(line)
             continue
-        # Datenzeilen enden auf \\  und sind keine LaTeX-Befehls-Zeilen
+        # Data rows end with \\  and are not LaTeX command lines
         if past_header_midrule and stripped.endswith(r"\\") and not stripped.startswith("\\"):
             result.append(line)
             data_row_idx += 1

@@ -1,12 +1,12 @@
-Modell,lambda,RMSE,RMSE/RW
-RW,fest,0.9398,1.0
-AR,fest,0.9499,1.0107
-LASSO,fest,1.0865,1.1561
-LASSO (adapt.),adaptiv,1.2421,1.3217
-Ridge,fest,1.1592,1.2334
-Ridge (adapt.),adaptiv,1.423,1.5141
-Elastic Net,fest,1.0903,1.1601
-Elastic Net (adapt.),adaptiv,1.2332,1.3122
-LASSO+HVPI,fest,0.95,1.0109
-LASSO+HVPI (adapt.),adaptiv,1.0027,1.0669
-Adaptive LASSO (adapt.),adaptiv,0.9937,1.0574
+Model,lambda,RMSE,RMSE/RW
+RW,fixed,0.9398,1.0
+AR,fixed,0.9499,1.0107
+LASSO,fixed,1.0865,1.1561
+LASSO (adapt.),adaptive,1.2421,1.3217
+Ridge,fixed,1.1592,1.2334
+Ridge (adapt.),adaptive,1.423,1.5141
+Elastic Net,fixed,1.0903,1.1601
+Elastic Net (adapt.),adaptive,1.2332,1.3122
+LASSO+HVPI,fixed,0.95,1.0109
+LASSO+HVPI (adapt.),adaptive,1.0027,1.0669
+Adaptive LASSO (adapt.),adaptive,0.9937,1.0574

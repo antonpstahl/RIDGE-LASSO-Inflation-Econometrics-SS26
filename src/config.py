@@ -4,32 +4,32 @@ import pathlib
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# --- Paths ---
 ROOT           = pathlib.Path(__file__).resolve().parent.parent
 DATA_RAW       = ROOT / "data" / "raw"    / "data_raw.csv"
 DATA_PROCESSED = ROOT / "data" / "processed" / "data_yoy.csv"
 RESULTS_DIR    = ROOT / "results"
 FIGURES_DIR    = ROOT / "results" / "figures"
 
-# ── Reproducibility ───────────────────────────────────────────────────────────
+# --- Reproducibility ---
 SEED = 42
 
-# ── Feature engineering ───────────────────────────────────────────────────────
+# --- Feature engineering ---
 LAGS        = [1, 2, 3, 6, 12]
 AR_LAGS     = [1, 2, 3, 6, 12]
 TEST_MONTHS = 36
 HORIZONS    = [1, 3, 6, 12]
 
-# ── Regime-Analyse (AP25) ─────────────────────────────────────────────────────
-# Energie-Preisschock-Peak: 2022-10 (HVPI YoY = 11,6 %); Abflauen ab 2023-04.
-# Schock-Regime inkl. bis 2023-03; ab 2023-04 Disinflationsphase.
+# --- Regime analysis (AP25) ---
+# Energy price shock peak: 2022-10 (HICP YoY = 11.6 %). Easing from 2023-04.
+# Shock regime up to and including 2023-03, disinflation phase from 2023-04.
 REGIME_SHOCK_END = "2023-03"
 
-# ── Reporting ─────────────────────────────────────────────────────────────────
+# --- Reporting ---
 WINDOW_ROLLING_RMSE = 12
 TOP_N_STABILITY     = 25
 
-# ── Hyperparameter grids ──────────────────────────────────────────────────────
+# --- Hyperparameter grids ---
 ALPHAS_LASSO         = np.logspace(-4, 2, 200)
 ALPHAS_RIDGE         = np.logspace(-2, 4, 200)
 ALPHAS_LASSO_INNER   = np.logspace(-4, 1, 50)
@@ -37,11 +37,11 @@ ALPHAS_RIDGE_INNER   = np.logspace(-2, 4, 50)
 L1_RATIOS_ENET       = [0.1, 0.5, 0.7, 0.9, 0.95, 0.99, 1.0]
 L1_RATIOS_ENET_INNER = [0.5, 0.9, 0.99, 1.0]
 
-# ── Cross-validation ──────────────────────────────────────────────────────────
+# --- Cross-validation ---
 TSCV       = TimeSeriesSplit(n_splits=10, test_size=12)
 TSCV_INNER = TimeSeriesSplit(n_splits=3,  test_size=12)
 
-# ── Plot colours ──────────────────────────────────────────────────────────────
+# --- Plot colours ---
 COLORS = {
     "OLS": "#2196F3", "Ridge": "#FF9800",
     "LASSO": "#4CAF50", "ElasticNet": "#F44336",
@@ -53,11 +53,11 @@ COLORS_OOS = {
     "LASSO+HVPI": "#9C27B0",
 }
 
-# ── API endpoints ─────────────────────────────────────────────────────────────
+# --- API endpoints ---
 ECB_BASE   = "https://data-api.ecb.europa.eu/service/data"
 ESTAT_BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
 
-# ── Data-series definitions ───────────────────────────────────────────────────
+# --- Data-series definitions ---
 PROD_SECTORS = {
     "IP_Verarbeitendes_Gew": "C",       "IP_Nahrungs_Genuss":    "C10-C12",
     "IP_Textil_Leder":       "C13-C15", "IP_Holz_Papier_Druck":  "C16-C18",
@@ -99,8 +99,8 @@ def setup_environment():
     import matplotlib.pyplot as plt
 
     np.random.seed(SEED)
-    # FP-Ausnahmen werden *lokal* mit np.errstate unterdrückt (training.py,
-    # evaluation.py: rolling_origin mit suppress_fp=True), nicht global.
+    # FP exceptions are suppressed *locally* with np.errstate (training.py,
+    # evaluation.py: rolling_origin with suppress_fp=True), not globally.
     plt.rcParams.update({
         "figure.dpi":        120,
         "savefig.dpi":       300,

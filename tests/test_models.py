@@ -1,4 +1,4 @@
-"""Smoke-Tests: Schätzer-Sanity fuer AdaptiveLasso."""
+"""Smoke tests: estimator sanity for AdaptiveLasso."""
 import numpy as np
 import pytest
 
@@ -21,17 +21,17 @@ def test_adaptive_lasso_fit_predict_shape(xy_small):
     X, y = xy_small
     model = AdaptiveLasso(alphas=np.logspace(-3, 1, 10), cv=3).fit(X, y)
     preds = model.predict(X)
-    assert preds.shape == (len(y),), "predict() hat falsche Shape"
+    assert preds.shape == (len(y),), "predict() has wrong shape"
 
 
 def test_adaptive_lasso_coef_shape(xy_small):
     X, y = xy_small
     model = AdaptiveLasso(alphas=np.logspace(-3, 1, 10), cv=3).fit(X, y)
-    assert model.coef_.shape == (X.shape[1],), "coef_ hat falsche Shape"
+    assert model.coef_.shape == (X.shape[1],), "coef_ has wrong shape"
 
 
 def test_adaptive_lasso_deterministic(xy_small):
-    """Zwei Fits mit gleichem Seed liefern identische Koeffizienten."""
+    """Two fits with the same seed yield identical coefficients."""
     X, y = xy_small
     np.random.seed(7)
     m1 = AdaptiveLasso(alphas=np.logspace(-3, 1, 10), cv=3).fit(X, y)
@@ -39,21 +39,21 @@ def test_adaptive_lasso_deterministic(xy_small):
     m2 = AdaptiveLasso(alphas=np.logspace(-3, 1, 10), cv=3).fit(X, y)
     np.testing.assert_array_equal(
         m1.coef_, m2.coef_,
-        err_msg="AdaptiveLasso ist nicht deterministisch",
+        err_msg="AdaptiveLasso is not deterministic",
     )
 
 
 def test_adaptive_lasso_sparsity(xy_small):
-    """Adaptive LASSO soll bei starker Regularisierung Sparsität erzeugen."""
+    """Adaptive LASSO should produce sparsity under strong regularisation."""
     X, y = xy_small
     model = AdaptiveLasso(alphas=[1.0, 10.0, 100.0], cv=3).fit(X, y)
     n_nonzero = int(np.sum(model.coef_ != 0))
     assert n_nonzero < X.shape[1], \
-        "Adaptive LASSO hat bei hohem α keine Koeffizienten auf null gesetzt"
+        "Adaptive LASSO set no coefficients to zero at high α"
 
 
 def test_adaptive_lasso_alpha_attr(xy_small):
     X, y = xy_small
     model = AdaptiveLasso(alphas=np.logspace(-3, 1, 5), cv=3).fit(X, y)
-    assert hasattr(model, "alpha_"), "alpha_-Attribut fehlt nach fit()"
-    assert model.alpha_ > 0, "alpha_ muss positiv sein"
+    assert hasattr(model, "alpha_"), "alpha_ attribute missing after fit()"
+    assert model.alpha_ > 0, "alpha_ must be positive"

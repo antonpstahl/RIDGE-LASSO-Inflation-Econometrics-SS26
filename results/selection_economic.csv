@@ -1,6 +1,6 @@
-,Gesamt,Schock,Disinflation
-PPI (Erzeugerpreise/Cost-Push),0.335,0.312,0.371
-BS (Geschäftserwartungen),0.2,0.178,0.234
-IP (Industrieproduktion),0.2,0.201,0.199
-LCI (Lohnkosten/Cost-Push),0.172,0.166,0.182
-ALQ (Arbeitsmarkt/Phillips),0.112,0.097,0.136
+,Total,Shock,Disinflation
+PPI (producer prices/cost-push),0.335,0.312,0.371
+BS (business expectations),0.2,0.178,0.234
+IP (industrial production),0.2,0.201,0.199
+LCI (labour cost/cost-push),0.172,0.166,0.182
+ALQ (labour market/Phillips),0.112,0.097,0.136

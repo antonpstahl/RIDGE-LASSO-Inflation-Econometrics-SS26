@@ -1,10 +1,10 @@
 \begin{table}
-\caption{RMSE je Prognose-Horizont $h \in \{1,3,6,12\}$ Monate. $\hat{k}$ = Anzahl nicht-null Koeffizienten.}
+\caption{RMSE per forecast horizon $h \in \{1,3,6,12\}$ months. $\hat{k}$ = number of non-zero coefficients.}
 \label{tab:horizonte}
 \begin{tabular}{lrrrrrrr}
 \toprule
  & RW & OLS & Ridge & LASSO & LASSO $\hat{k}$ & Elastic Net & EN $\hat{k}$ \\
-Horizont h &  &  &  &  &  &  &  \\
+Horizon h &  &  &  &  &  &  &  \\
 \midrule
 1 & 0.940 & 3.404 & 1.957 & 1.831 & 29 & 1.845 & 34 \\
 3 & 1.889 & 5.109 & 3.486 & 3.101 & 11 & 3.183 & 13 \\

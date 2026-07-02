@@ -1,12 +1,12 @@
 \begin{table}
-\caption{Robustheit Sample-Verlängerung (AP32): Rolling-Origin-RMSE ($h=1$, festes $\lambda$) nach Entfernen der bindenden Reihe \texttt{BS\_Produktionserwart}. Das OOS-Fenster verlängert sich von 2024-10 auf 2025-12 (+14 Monate); das Post-Schock-Segment (2023-04--2025-12, $n_P=28$) testet die These \emph{RW unschlagbar} erstmals out-of-sample im Nicht-Schock-Regime. Index $S$: Schock, $P$: Post-Schock, $G$: gesamt. Post-Test: DM (HLN, zweiseitig) bzw. CW (2007, einseitig, geschachtelt) vs. RW. $p_P^{\mathrm{adj}}$: Bonferroni-Korrektur über die 6 parallelen Post-Tests, konsistent zur Einzelfenster-Inferenz (\cref{tab:inferenz}); Sig$_P$ bezieht sich auf $p_P^{\mathrm{adj}}$ (* $p<0{,}10$, ** $p<0{,}05$). Unkorrigiert erreichen AR und LASSO+HVPI $p_P<0{,}05$, nach Korrektur ist jedoch kein Modell mehr auf dem 5\,\%-Niveau signifikant.}
+\caption{Sample-extension robustness (AP32): rolling-origin RMSE ($h=1$, fixed $\lambda$) after removing the binding series \texttt{BS\_Produktionserwart}. The OOS window extends from 2024-10 to 2025-12 (+14 months). The post-shock segment (2023-04--2025-12, $n_P=28$) tests the claim \emph{RW unbeatable} for the first time out-of-sample in the non-shock regime. Index $S$: shock, $P$: post-shock, $G$: total. Post-test: DM (HLN, two-sided) or CW (2007, one-sided, nested) vs. RW. $p_P^{\mathrm{adj}}$: Bonferroni correction over the 6 parallel post-tests, consistent with the single-window inference (\cref{tab:inferenz}). Sig$_P$ refers to $p_P^{\mathrm{adj}}$ (* $p<0.10$, ** $p<0.05$). Unadjusted, AR and LASSO+HVPI reach $p_P<0.05$, but after correction no model is significant at the 5\,\% level any more.}
 \label{tab:robustheit_extended}
 \begin{tabular}{lrrrrrrlrrrl}
 \toprule
- & RMSE Schock & RMSE/RW$_{S}$ & RMSE Post & RMSE/RW$_{P}$ & RMSE Gesamt & RMSE/RW$_{G}$ & Test & Stat$_P$ & $p_P$ & $p_P^{\mathrm{adj}}$ & Sig$_P$ \\
-Modell &  &  &  &  &  &  &  &  &  &  &  \\
+ & RMSE Shock & RMSE/RW$_{S}$ & RMSE Post & RMSE/RW$_{P}$ & RMSE Total & RMSE/RW$_{G}$ & Test & Stat$_P$ & $p_P$ & $p_P^{\mathrm{adj}}$ & Sig$_P$ \\
+Model &  &  &  &  &  &  &  &  &  &  &  \\
 \midrule
-RW & 0.9584 & 1.0000 & 0.6683 & 1.0000 & 0.8089 & 1.0000 & – & NaN & NaN & NaN & – \\
+RW & 0.9584 & 1.0000 & 0.6683 & 1.0000 & 0.8089 & 1.0000 & - & - & - & - & - \\
 AR & 1.0173 & 1.0615 & 0.6374 & 0.9538 & 0.8264 & 1.0217 & CW & 1.8490 & 0.0322 & 0.1932 & n.s. \\
 OLS & 3.0430 & 3.1750 & 0.9847 & 1.4735 & 2.1488 & 2.6566 & DM & -1.1340 & 0.2669 & 1.0000 & n.s. \\
 Ridge & 0.9998 & 1.0431 & 1.0574 & 1.5823 & 1.0324 & 1.2764 & DM & -2.0110 & 0.0544 & 0.3264 & n.s. \\

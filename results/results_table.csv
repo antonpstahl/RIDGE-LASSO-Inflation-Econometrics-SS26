@@ -1,9 +1,9 @@
-Modell,Gruppe,λ,Train MSE,Test MSE,Test RMSE,RMSE/RW,Test R²,Nicht-Null-Koeff.
+Model,Group,λ,Train MSE,Test MSE,Test RMSE,RMSE/RW,Test R²,Non-zero coeff.
 Random Walk,Benchmark,-,-,0.8833,0.9398,1.0,0.8933,-
-Lag-Modell (ADL),Benchmark,-,-,1.1114,1.0542,1.1217,0.8657,5
-LASSO+HVPI,Mit Eigen-Lags,0.06368,-,2.1741,1.4745,1.5689,0.7374,7 / 160
-OLS,Didaktisch,-,0.0242,11.585,3.4037,3.6216,-0.3994,155
-Ridge,Didaktisch,54.789,0.1044,3.8303,1.9571,2.0824,0.5373,155
-LASSO,Didaktisch,0.02967,0.1383,3.3534,1.8312,1.9485,0.5949,29
-Elastic Net,Didaktisch,0.03917,0.1362,3.4056,1.8454,1.9636,0.5886,34
-Adaptive LASSO,Didaktisch,0.00032,0.0866,1.8959,1.3769,1.4651,0.771,50
+Lag model (ADL),Benchmark,-,-,1.1114,1.0542,1.1217,0.8657,5
+LASSO+HVPI,With own lags,0.06368,-,2.1741,1.4745,1.5689,0.7374,7 / 160
+OLS,Illustrative,-,0.0242,11.585,3.4037,3.6216,-0.3994,155
+Ridge,Illustrative,54.789,0.1044,3.8303,1.9571,2.0824,0.5373,155
+LASSO,Illustrative,0.02967,0.1383,3.3534,1.8312,1.9485,0.5949,29
+Elastic Net,Illustrative,0.03917,0.1362,3.4056,1.8454,1.9636,0.5886,34
+Adaptive LASSO,Illustrative,0.00032,0.0866,1.8959,1.3769,1.4651,0.771,50

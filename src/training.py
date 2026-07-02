@@ -14,17 +14,17 @@ from .models import AdaptiveLasso
 
 
 def fit_all_models(X, y, splits, tscv=None):
-    """Passt alle Modelle auf dem Trainings-Split an; gibt Modelle + Metriken zurueck.
+    """Fits all models on the training split, returns models + metrics.
 
     Parameters
     ----------
-    X, y        : vollstaendige Feature-Matrix und Zielvariable
-    splits      : ctx-Dict aus data_preprocessing.prepare_splits
-    tscv        : TimeSeriesSplit-Objekt (default: config.TSCV)
+    X, y        : full feature matrix and target variable
+    splits      : ctx dict from data_preprocessing.prepare_splits
+    tscv        : TimeSeriesSplit object (default: config.TSCV)
 
     Returns
     -------
-    dict mit allen Modell-Objekten, Hyperparametern, Prognosen und Metriken.
+    dict with all model objects, hyperparameters, forecasts and metrics.
     """
     if tscv is None:
         tscv = TSCV
@@ -47,19 +47,19 @@ def fit_all_models(X, y, splits, tscv=None):
 
     ctx = {}
 
-    # ── Random Walk ──────────────────────────────────────────────────────────
+    # --- Random Walk ---
     y_pred_rw_test     = y.shift(1).loc[y_test.index]
     mse_rw_test        = mean_squared_error(y_test, y_pred_rw_test)
     r2_rw_test         = r2_score(y_test, y_pred_rw_test)
     rmse_rw_test       = np.sqrt(mse_rw_test)
-    print(f"Random Walk – Test MSE: {mse_rw_test:.4f}  |  RMSE: {rmse_rw_test:.4f}"
+    print(f"Random Walk - Test MSE: {mse_rw_test:.4f}  |  RMSE: {rmse_rw_test:.4f}"
           f"  |  R²: {r2_rw_test:.4f}")
     ctx.update(dict(
         y_pred_rw_test=y_pred_rw_test,
         mse_rw_test=mse_rw_test, rmse_rw_test=rmse_rw_test, r2_rw_test=r2_rw_test,
     ))
 
-    # ── Lag-Modell (ADL) ─────────────────────────────────────────────────────
+    # --- Lag model (ADL) ---
     ar_model = LinearRegression()
     ar_model.fit(sc_ar.fit_transform(X_ar_train), y_ar_train)
     y_pred_ar_test = pd.Series(
@@ -68,7 +68,7 @@ def fit_all_models(X, y, splits, tscv=None):
     mse_ar_test  = mean_squared_error(y_test, y_pred_ar_test)
     r2_ar_test   = r2_score(y_test, y_pred_ar_test)
     rmse_ar_test = np.sqrt(mse_ar_test)
-    print(f"Lag-Modell (ADL)      – Test MSE: {mse_ar_test:.4f}  |  "
+    print(f"Lag model (ADL)       - Test MSE: {mse_ar_test:.4f}  |  "
           f"RMSE: {rmse_ar_test:.4f}  |  R²: {r2_ar_test:.4f}")
     ctx.update(dict(
         ar_model=ar_model,
@@ -76,12 +76,12 @@ def fit_all_models(X, y, splits, tscv=None):
         mse_ar_test=mse_ar_test, rmse_ar_test=rmse_ar_test, r2_ar_test=r2_ar_test,
     ))
 
-    # ── LASSO + HVPI-Eigen-Lags (Makro-Mehrwert) ─────────────────────────────
+    # --- LASSO + HVPI own lags (macro value-added) ---
     lasso_plus_cv = LassoCV(
         alphas=ALPHAS_LASSO, cv=tscv, max_iter=10000, n_jobs=-1
     )
-    # Koordinatenabstieg auf der erweiterten Feature-Matrix löst bei Near-Singularität
-    # benigne FP-Ausnahmen aus (matmul overflow/invalid); lokal unterdrückt.
+    # Coordinate descent on the extended feature matrix triggers benign FP exceptions
+    # under near-singularity (matmul overflow/invalid), suppressed locally.
     with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
         lasso_plus_cv.fit(X_plus_train_s, y_plus_train)
     y_pred_lasso_plus_test = pd.Series(
@@ -91,9 +91,9 @@ def fit_all_models(X, y, splits, tscv=None):
     r2_lasso_plus_test   = r2_score(y_test, y_pred_lasso_plus_test)
     rmse_lasso_plus_test = np.sqrt(mse_lasso_plus_test)
     n_nonzero_plus       = int(np.sum(lasso_plus_cv.coef_ != 0))
-    print(f"LASSO+HVPI – λ={lasso_plus_cv.alpha_:.5f}, "
+    print(f"LASSO+HVPI - λ={lasso_plus_cv.alpha_:.5f}, "
           f"MSE={mse_lasso_plus_test:.4f}, RMSE={rmse_lasso_plus_test:.4f}, "
-          f"R²={r2_lasso_plus_test:.4f}, Koeff.≠0: {n_nonzero_plus}/{X_plus_train.shape[1]}")
+          f"R²={r2_lasso_plus_test:.4f}, Coeff.≠0: {n_nonzero_plus}/{X_plus_train.shape[1]}")
     ctx.update(dict(
         lasso_plus_cv=lasso_plus_cv,
         y_pred_lasso_plus_test=y_pred_lasso_plus_test,
@@ -103,7 +103,7 @@ def fit_all_models(X, y, splits, tscv=None):
         n_nonzero_plus=n_nonzero_plus,
     ))
 
-    # ── OLS ──────────────────────────────────────────────────────────────────
+    # --- OLS ---
     ols = LinearRegression()
     ols.fit(X_train_s, y_train)
     y_pred_ols_train = ols.predict(X_train_s)
@@ -111,16 +111,16 @@ def fit_all_models(X, y, splits, tscv=None):
     mse_ols_train = mean_squared_error(y_train, y_pred_ols_train)
     mse_ols_test  = mean_squared_error(y_test,  y_pred_ols_test)
     r2_ols_test   = r2_score(y_test, y_pred_ols_test)
-    print(f"OLS – Train MSE: {mse_ols_train:.4f}  |  Test MSE: {mse_ols_test:.4f}")
-    print(f"OLS – Test R²:   {r2_ols_test:.4f}")
-    print(f"OLS – Nicht-Null-Koeffizienten: {np.sum(ols.coef_ != 0)}/{len(ols.coef_)}")
+    print(f"OLS - Train MSE: {mse_ols_train:.4f}  |  Test MSE: {mse_ols_test:.4f}")
+    print(f"OLS - Test R²:   {r2_ols_test:.4f}")
+    print(f"OLS - Non-zero coefficients: {np.sum(ols.coef_ != 0)}/{len(ols.coef_)}")
     ctx.update(dict(
         ols=ols,
         y_pred_ols_train=y_pred_ols_train, y_pred_ols_test=y_pred_ols_test,
         mse_ols_train=mse_ols_train, mse_ols_test=mse_ols_test, r2_ols_test=r2_ols_test,
     ))
 
-    # ── Ridge ─────────────────────────────────────────────────────────────────
+    # --- Ridge ---
     ridge_cv = RidgeCV(
         alphas=ALPHAS_RIDGE, cv=tscv, scoring="neg_mean_squared_error"
     )
@@ -131,9 +131,9 @@ def fit_all_models(X, y, splits, tscv=None):
     mse_ridge_train = mean_squared_error(y_train, y_pred_ridge_train)
     mse_ridge_test  = mean_squared_error(y_test,  y_pred_ridge_test)
     r2_ridge_test   = r2_score(y_test, y_pred_ridge_test)
-    print(f"Ridge – Optimales λ (Cross-Validation): {lambda_ridge:.4f}")
-    print(f"Ridge – Train MSE: {mse_ridge_train:.4f}  |  Test MSE: {mse_ridge_test:.4f}")
-    print(f"Ridge – Test R²:   {r2_ridge_test:.4f}")
+    print(f"Ridge - Optimal λ (cross-validation): {lambda_ridge:.4f}")
+    print(f"Ridge - Train MSE: {mse_ridge_train:.4f}  |  Test MSE: {mse_ridge_test:.4f}")
+    print(f"Ridge - Test R²:   {r2_ridge_test:.4f}")
     ctx.update(dict(
         ridge_cv=ridge_cv, lambda_ridge=lambda_ridge,
         y_pred_ridge_train=y_pred_ridge_train, y_pred_ridge_test=y_pred_ridge_test,
@@ -141,7 +141,7 @@ def fit_all_models(X, y, splits, tscv=None):
         r2_ridge_test=r2_ridge_test,
     ))
 
-    # ── LASSO ─────────────────────────────────────────────────────────────────
+    # --- LASSO ---
     lasso_cv = LassoCV(
         alphas=ALPHAS_LASSO, cv=tscv, max_iter=10000, n_jobs=-1,
     )
@@ -153,10 +153,10 @@ def fit_all_models(X, y, splits, tscv=None):
     mse_lasso_test  = mean_squared_error(y_test,  y_pred_lasso_test)
     r2_lasso_test   = r2_score(y_test, y_pred_lasso_test)
     n_nonzero       = int(np.sum(lasso_cv.coef_ != 0))
-    print(f"LASSO – Optimales λ (Cross-Validation): {lambda_lasso:.6f}")
-    print(f"LASSO – Train MSE: {mse_lasso_train:.4f}  |  Test MSE: {mse_lasso_test:.4f}")
-    print(f"LASSO – Test R²:   {r2_lasso_test:.4f}")
-    print(f"LASSO – Selektierte Variablen: {n_nonzero}/{len(lasso_cv.coef_)} "
+    print(f"LASSO - Optimal λ (cross-validation): {lambda_lasso:.6f}")
+    print(f"LASSO - Train MSE: {mse_lasso_train:.4f}  |  Test MSE: {mse_lasso_test:.4f}")
+    print(f"LASSO - Test R²:   {r2_lasso_test:.4f}")
+    print(f"LASSO - Selected variables: {n_nonzero}/{len(lasso_cv.coef_)} "
           f"({n_nonzero/len(lasso_cv.coef_)*100:.1f}%)")
     ctx.update(dict(
         lasso_cv=lasso_cv, lambda_lasso=lambda_lasso,
@@ -165,7 +165,7 @@ def fit_all_models(X, y, splits, tscv=None):
         r2_lasso_test=r2_lasso_test, n_nonzero=n_nonzero,
     ))
 
-    # ── Elastic Net ───────────────────────────────────────────────────────────
+    # --- Elastic Net ---
     enet_cv = ElasticNetCV(
         l1_ratio=L1_RATIOS_ENET,
         alphas=ALPHAS_LASSO,
@@ -180,9 +180,9 @@ def fit_all_models(X, y, splits, tscv=None):
     mse_enet_test   = mean_squared_error(y_test,  y_pred_enet_test)
     r2_enet_test    = r2_score(y_test, y_pred_enet_test)
     n_nonzero_enet  = int(np.sum(enet_cv.coef_ != 0))
-    print(f"Elastic Net – Optimales α: {lambda_enet:.6f}, l1_ratio: {l1_ratio_enet:.2f}")
-    print(f"Elastic Net – Train MSE: {mse_enet_train:.4f}  |  Test MSE: {mse_enet_test:.4f}")
-    print(f"Elastic Net – Test R²:   {r2_enet_test:.4f}")
+    print(f"Elastic Net - Optimal α: {lambda_enet:.6f}, l1_ratio: {l1_ratio_enet:.2f}")
+    print(f"Elastic Net - Train MSE: {mse_enet_train:.4f}  |  Test MSE: {mse_enet_test:.4f}")
+    print(f"Elastic Net - Test R²:   {r2_enet_test:.4f}")
     ctx.update(dict(
         enet_cv=enet_cv, lambda_enet=lambda_enet, l1_ratio_enet=l1_ratio_enet,
         y_pred_enet_train=y_pred_enet_train, y_pred_enet_test=y_pred_enet_test,
@@ -190,7 +190,7 @@ def fit_all_models(X, y, splits, tscv=None):
         r2_enet_test=r2_enet_test, n_nonzero_enet=n_nonzero_enet,
     ))
 
-    # ── Adaptive LASSO ────────────────────────────────────────────────────────
+    # --- Adaptive LASSO ---
     alasso = AdaptiveLasso(cv=tscv, max_iter=10000).fit(X_train_s, y_train)
     y_pred_alasso_test  = pd.Series(alasso.predict(X_test_s),  index=y_test.index)
     y_pred_alasso_train = pd.Series(alasso.predict(X_train_s), index=y_train.index)
@@ -199,9 +199,9 @@ def fit_all_models(X, y, splits, tscv=None):
     rmse_alasso_test   = np.sqrt(mse_alasso_test)
     r2_alasso_test     = r2_score(y_test, y_pred_alasso_test)
     n_nonzero_alasso   = int(np.sum(alasso.coef_ != 0))
-    print(f"Adaptive LASSO – λ={alasso.alpha_:.5f}, "
+    print(f"Adaptive LASSO - λ={alasso.alpha_:.5f}, "
           f"RMSE={rmse_alasso_test:.4f}, RMSE/RW={rmse_alasso_test/rmse_rw_test:.4f}, "
-          f"R²={r2_alasso_test:.4f}, Koeff.≠0: {n_nonzero_alasso}/{X_train_s.shape[1]}")
+          f"R²={r2_alasso_test:.4f}, Coeff.≠0: {n_nonzero_alasso}/{X_train_s.shape[1]}")
     ctx.update(dict(
         alasso=alasso,
         y_pred_alasso_test=y_pred_alasso_test, y_pred_alasso_train=y_pred_alasso_train,
@@ -210,12 +210,12 @@ def fit_all_models(X, y, splits, tscv=None):
         n_nonzero_alasso=n_nonzero_alasso,
     ))
 
-    # ── Ergebnistabelle ───────────────────────────────────────────────────────
+    # --- Results table ---
     results = _build_results_table(ctx, X.shape[1], splits["X_plus_train"].shape[1])
     results.to_csv("results/results_table.csv")
-    print("\nErgebnistabelle gespeichert: results_table.csv")
+    print("\nResults table saved: results_table.csv")
 
-    # LASSO-Koeffizienten für Reporting
+    # LASSO coefficients for reporting
     lasso_coefs = pd.Series(lasso_cv.coef_, index=X.columns)
     selected    = lasso_coefs[lasso_coefs != 0].sort_values(key=np.abs, ascending=False)
     top_idx     = np.argsort(np.abs(lasso_cv.coef_))[::-1][:15]
@@ -225,17 +225,17 @@ def fit_all_models(X, y, splits, tscv=None):
 
 
 def _build_results_table(ctx, n_feat, n_plus):
-    """Baut die Ergebnistabelle (entspricht Cell 29 im Originalnotebook).
+    """Builds the results table (corresponds to Cell 29 in the original notebook).
 
-    Reihenfolge: Benchmark → Mit Eigen-Lags (zentraler Vergleich) → Didaktisch.
-    Spalte 'Gruppe' macht die Zuordnung explizit; wird von reporting.py fuer
-    LaTeX-Trennlinien und README-Gruppierung genutzt.
+    Order: Benchmark -> With own lags (central comparison) -> illustrative.
+    The 'Gruppe' column makes the assignment explicit and is used by reporting.py
+    for LaTeX separator lines and README grouping.
     """
     c = ctx
-    # Reihenfolge: [Benchmark] RW, ADL → [Mit Eigen-Lags] LASSO+HVPI → [Didaktisch] OLS, Ridge, LASSO, EN, Adaptive LASSO
+    # Order: [Benchmark] RW, ADL -> [With own lags] LASSO+HVPI -> [illustrative] OLS, Ridge, LASSO, EN, Adaptive LASSO
     results = pd.DataFrame({
-        "Modell": [
-            "Random Walk", "Lag-Modell (ADL)", "LASSO+HVPI",
+        "Model": [
+            "Random Walk", "Lag model (ADL)", "LASSO+HVPI",
             "OLS", "Ridge", "LASSO", "Elastic Net", "Adaptive LASSO",
         ],
         "λ": [
@@ -280,7 +280,7 @@ def _build_results_table(ctx, n_feat, n_plus):
             c["r2_lasso_test"],    c["r2_enet_test"],
             c["r2_alasso_test"],
         ],
-        "Nicht-Null-Koeff.": [
+        "Non-zero coeff.": [
             "-", str(len(AR_LAGS)),
             str(c["n_nonzero_plus"]) + f" / {n_plus}",
             str(int(np.sum(c["ols"].coef_ != 0))),
@@ -289,14 +289,14 @@ def _build_results_table(ctx, n_feat, n_plus):
             str(c["n_nonzero_enet"]),
             str(c["n_nonzero_alasso"]),
         ],
-    }).set_index("Modell")
+    }).set_index("Model")
 
     for col in ["Test MSE", "Test RMSE", "RMSE/RW", "Test R²"]:
         results[col] = results[col].round(4)
 
-    # Gruppenkennung: Benchmark / Mit Eigen-Lags (zentraler Vergleich) / Didaktisch
-    results.insert(0, "Gruppe", [
-        "Benchmark", "Benchmark", "Mit Eigen-Lags",
-        "Didaktisch", "Didaktisch", "Didaktisch", "Didaktisch", "Didaktisch",
+    # Group identifier: Benchmark / With own lags (central comparison) / Illustrative
+    results.insert(0, "Group", [
+        "Benchmark", "Benchmark", "With own lags",
+        "Illustrative", "Illustrative", "Illustrative", "Illustrative", "Illustrative",
     ])
     return results

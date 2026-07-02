@@ -1,5 +1,5 @@
-Modell,RMSE Schock,RMSE/RW Schock,RMSE Post,RMSE/RW Post,RMSE Gesamt,RMSE/RW Gesamt,Test,Stat Post,p Post,Sig Post,p adj. Post,Sig Post adj.
-RW,0.9584,1.0,0.6683,1.0,0.8089,1.0,–,,,–,,–
+Model,RMSE Shock,RMSE/RW Shock,RMSE Post,RMSE/RW Post,RMSE Total,RMSE/RW Total,Test,Stat Post,p Post,Sig Post,p adj. Post,Sig Post adj.
+RW,0.9584,1.0,0.6683,1.0,0.8089,1.0,-,,,-,,-
 AR,1.0173,1.0615,0.6374,0.9538,0.8264,1.0217,CW,1.849,0.0322,**,0.1932,n.s.
 OLS,3.043,3.175,0.9847,1.4735,2.1488,2.6566,DM,-1.134,0.2669,n.s.,1.0,n.s.
 Ridge,0.9998,1.0431,1.0574,1.5823,1.0324,1.2764,DM,-2.011,0.0544,*,0.3264,n.s.

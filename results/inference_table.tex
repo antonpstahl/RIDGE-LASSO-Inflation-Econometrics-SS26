@@ -1,13 +1,13 @@
 \begin{table}
-\caption{Einzelfenster-Inferenz: Block-Bootstrap 95\%-Konfidenzintervall für den RMSE (zirkulärer Block-Bootstrap, $l=6\approx\sqrt{T}$, $B=2\,000$) und Inferenztest je Modell gegen den Random Walk, T=36 Testpunkte. Nicht-geschachtelte Modelle: Diebold-Mariano-Test (HLN-Korrektur, $h=1$, zweiseitig). Geschachtelte Modelle (Lag-Modell, LASSO+HVPI): Clark-West-Test (2007, einseitig, $H_1$: Modell genauer als RW).  $p_{\mathrm{adj}}$: Bonferroni-Korrektur für Mehrfachtests ($p_{\mathrm{adj},i}=\min(n\cdot p_i,1)$; $n$ = Anzahl Tests). Stat.\ $> 0$: Modell schlägt RW. Sig.: * $p<0{,}10$, ** $p<0{,}05$.}
+\caption{Single-window inference: block-bootstrap 95\% confidence interval for the RMSE (circular block bootstrap, $l=6\approx\sqrt{T}$, $B=2\,000$) and inference test per model against the random walk, T=36 test points. Non-nested models: Diebold-Mariano test (HLN correction, $h=1$, two-sided). Nested models (lag model, LASSO+HVPI): Clark-West test (2007, one-sided, $H_1$: model more accurate than RW).  $p_{\mathrm{adj}}$: Bonferroni correction for multiple testing ($p_{\mathrm{adj},i}=\min(n\cdot p_i,1)$, $n$ = number of tests). Stat.\ $> 0$: model beats RW. Sig.: * $p<0.10$, ** $p<0.05$.}
 \label{tab:inferenz}
 \begin{tabular}{lrllrrrl}
 \toprule
- & Test RMSE & 95\%-KI (Bootstrap) & Test & Stat. & $p$-Wert & $p_{\mathrm{adj}}$ (Bonf.) & Sig. adj. \\
-Modell &  &  &  &  &  &  &  \\
+ & Test RMSE & 95\% CI (bootstrap) & Test & Stat. & $p$-value & $p_{\mathrm{adj}}$ (Bonf.) & Sig. adj. \\
+Model &  &  &  &  &  &  &  \\
 \midrule
-Random Walk & 0.9398 & [0.746, 1.098] & – & – & – & – & – \\
-Lag-Modell (ADL) & 1.0542 & [0.764, 1.317] & CW & 1.3500 & 0.0885 & 0.6195 & n.s. \\
+Random Walk & 0.9398 & [0.746, 1.098] & - & - & - & - & - \\
+Lag model (ADL) & 1.0542 & [0.764, 1.317] & CW & 1.3500 & 0.0885 & 0.6195 & n.s. \\
 OLS & 3.4037 & [2.192, 4.377] & DM & -3.4070 & 0.0017 & 0.0119 & ** \\
 Ridge & 1.9571 & [1.462, 2.386] & DM & -4.1670 & 0.0002 & 0.0014 & ** \\
 LASSO & 1.8312 & [1.505, 2.164] & DM & -4.7610 & 0.0000 & 0.0000 & ** \\

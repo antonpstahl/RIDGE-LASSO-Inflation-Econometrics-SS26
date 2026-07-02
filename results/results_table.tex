@@ -1,13 +1,13 @@
 \begin{table}
-\caption{Prognosemodelle im Vergleich: mittlerer RMSE, relatives RMSE (RMSE/RW) und $R^2$ im Testset (Jun.~2021--Okt.~2024). \emph{Benchmark}: Random Walk und Lag-Modell (ADL, nur HVPI-Eigen-Lags). \emph{Zentraler Vergleich}: LASSO+HVPI (Eigen-Lags + Makro) — ökonomisch sauber, da \emph{ceteris paribus} bzgl.\ Eigen-Lags. \emph{Didaktisch}: OLS–Adaptive LASSO ohne Eigen-Lags (strukturell benachteiligt, zeigen Regularisierung vs.\ OLS-Overfitting).}
+\caption{Forecast models compared: mean RMSE, relative RMSE (RMSE/RW) and $R^2$ on the test set (Jun~2021--Oct~2024). \emph{Benchmark}: random walk and lag model (ADL, HICP own lags only). \emph{Core comparison}: LASSO+HVPI (own lags + macro) - economically sound, as \emph{ceteris paribus} with respect to own lags. \emph{Illustrative}: OLS-Adaptive LASSO without own lags (structurally disadvantaged, show regularisation vs.\ OLS overfitting).}
 \label{tab:ergebnisse}
 \begin{tabular}{lllrrrrl}
 \toprule
- & λ & Train MSE & Test MSE & Test RMSE & RMSE/RW & Test $R^2$ & Koeff.$\neq$0 \\
-Modell &  &  &  &  &  &  &  \\
+ & λ & Train MSE & Test MSE & Test RMSE & RMSE/RW & Test $R^2$ & Coeff.$\neq$0 \\
+Model &  &  &  &  &  &  &  \\
 \midrule
 Random Walk & - & - & 0.8833 & 0.9398 & 1.0000 & 0.8933 & - \\
-Lag-Modell (ADL) & - & - & 1.1114 & 1.0542 & 1.1217 & 0.8657 & 5 \\
+Lag model (ADL) & - & - & 1.1114 & 1.0542 & 1.1217 & 0.8657 & 5 \\
 \midrule
 LASSO+HVPI & 0.06368 & - & 2.1741 & 1.4745 & 1.5689 & 0.7374 & 7 / 160 \\
 \midrule

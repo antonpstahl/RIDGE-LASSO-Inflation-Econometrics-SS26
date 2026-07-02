@@ -2,18 +2,19 @@
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+.pytest_cache/
 
-# Betriebssystem
+# Operating system
 .DS_Store
 Thumbs.db
 
-# Virtuelle Umgebungen
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Hinweis: data/ und results/ werden bewusst versioniert
-# (Reproduzierbarkeit der Seminararbeit).
+# Note: data/ and results/ are versioned on purpose
+# (reproducibility of the seminar paper).
 
 
 *.pdf

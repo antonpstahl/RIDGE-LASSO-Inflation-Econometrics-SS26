@@ -13,7 +13,7 @@ from .config import (
 
 
 def _fetch_ecb_series(flow_key, start="2000-01"):
-    """Laedt eine monatliche Zeitreihe vom ECB SDW (CSV-Format)."""
+    """Loads a monthly time series from the ECB SDW (CSV format)."""
     r = requests.get(
         f"{ECB_BASE}/{flow_key}",
         params={"startPeriod": start, "format": "csvdata"},
@@ -27,7 +27,7 @@ def _fetch_ecb_series(flow_key, start="2000-01"):
 
 
 def _eurostat_json_to_series(data, freq="M"):
-    """Konvertiert eine Eurostat-JSON-Antwort in eine pd.Series."""
+    """Converts a Eurostat JSON response into a pd.Series."""
     time_dim    = data["dimension"]["time"]
     pos_to_label = {v: k for k, v in time_dim["category"]["index"].items()}
     records = []
@@ -48,7 +48,7 @@ def _eurostat_json_to_series(data, freq="M"):
 
 
 def _fetch_eurostat(dataset, params, start_year=2000, freq="M"):
-    """Laedt eine Zeitreihe von Eurostat und filtert ab start_year."""
+    """Loads a time series from Eurostat and filters from start_year."""
     r = requests.get(
         f"{ESTAT_BASE}/{dataset}",
         params={**params, "format": "JSON"},
@@ -60,7 +60,7 @@ def _fetch_eurostat(dataset, params, start_year=2000, freq="M"):
 
 
 def load_all_data(verbose=True):
-    """Laedt alle Zeitreihen von ECB + Eurostat; gibt einen DataFrame zurueck."""
+    """Loads all time series from ECB + Eurostat and returns a DataFrame."""
     series_dict = {}
 
     def _log(name, s):
@@ -69,23 +69,23 @@ def load_all_data(verbose=True):
                   f"{s.index[0]:%Y-%m} - {s.index[-1]:%Y-%m}]")
 
     if verbose:
-        print("\n-- Zielvariable -------------------------------------------------")
+        print("\n-- Target variable ----------------------------------------------")
     s = _fetch_ecb_series("ICP/M.DE.N.000000.4.INX")
     series_dict["HVPI"] = s
-    _log("HVPI (Gesamtindex 2015=100)", s)
+    _log("HICP (overall index 2015=100)", s)
     time.sleep(0.3)
 
     blocks = [
-        ("Industrieproduktion", "sts_inpr_m",
+        ("Industrial production", "sts_inpr_m",
          lambda nace: {"geo": "DE", "s_adj": "NSA", "unit": "I21", "nace_r2": nace},
          PROD_SECTORS, "M"),
         ("Business Surveys", "ei_bsin_m_r2",
          lambda indic: {"geo": "DE", "s_adj": "SA", "indic": indic},
          BS_INDICATORS, "M"),
-        ("Produzentenpreise", "sts_inppd_m",
+        ("Producer prices", "sts_inppd_m",
          lambda nace: {"geo": "DE", "s_adj": "NSA", "unit": "I21", "nace_r2": nace},
          PPI_SECTORS, "M"),
-        ("Arbeitsmarkt", "une_rt_m",
+        ("Labour market", "une_rt_m",
          lambda grp: {"geo": "DE", "s_adj": "SA", "unit": "PC_ACT", **grp},
          UNEMP_GROUPS, "M"),
     ]
@@ -103,9 +103,9 @@ def load_all_data(verbose=True):
                     print(f"  x {name}: {e}")
             time.sleep(0.2)
 
-    # Lohnkosten (Quartal -> Monat, Treppenfunktion via ffill – kein Look-ahead)
+    # Labour costs (quarterly -> monthly, step function via ffill - no look-ahead)
     if verbose:
-        print("\n-- Lohnkosten (LCI, Quartal -> Monat) ---------------------------")
+        print("\n-- Labour costs (LCI, quarterly -> monthly) ---------------------")
     for name, flt in LCI_SERIES.items():
         try:
             s_q = _fetch_eurostat(
@@ -126,13 +126,13 @@ def load_all_data(verbose=True):
     df.index = pd.DatetimeIndex(df.index)
     df = df.sort_index()
     if verbose:
-        print(f"\n+ Rohdaten: {df.shape[0]} Perioden x {df.shape[1]} Variablen "
+        print(f"\n+ Raw data: {df.shape[0]} periods x {df.shape[1]} variables "
               f"({df.index[0]:%Y-%m} - {df.index[-1]:%Y-%m})")
     return df
 
 
 def _fix_lci_in_place(df):
-    """Stellt sicher, dass LCI-Quartalsreihen per ffill (nicht Interpolation) gefüllt sind."""
+    """Ensures that LCI quarterly series are filled via ffill (not interpolation)."""
     for col in [c for c in df.columns if c.startswith("LCI_")]:
         s = df[col].copy()
         s[~s.index.month.isin([1, 4, 7, 10])] = np.nan
@@ -140,17 +140,17 @@ def _fix_lci_in_place(df):
 
 
 def get_raw_data(use_cache=True, save=True, verbose=True):
-    """Liefert Rohdaten – aus dem CSV-Cache oder frisch von der API.
+    """Returns raw data - from the CSV cache or freshly from the API.
 
-    use_cache=True  -> liest data/raw/data_raw.csv, falls vorhanden.
-    use_cache=False -> erzwingt neuen API-Download (~1-2 Minuten).
-    save=True       -> speichert einen frischen Download als Cache.
+    use_cache=True  -> reads data/raw/data_raw.csv if present.
+    use_cache=False -> forces a new API download (~1-2 minutes).
+    save=True       -> saves a fresh download as cache.
     """
     if use_cache and DATA_RAW.exists():
         if verbose:
-            print(f"Rohdaten aus Cache geladen: {DATA_RAW}")
+            print(f"Raw data loaded from cache: {DATA_RAW}")
         df = pd.read_csv(DATA_RAW, index_col=0, parse_dates=True)
-        # Sicherstellen, dass LCI-Spalten ffill-korrigiert sind (idempotent)
+        # Ensure that LCI columns are ffill-corrected (idempotent)
         _fix_lci_in_place(df)
         df.to_csv(DATA_RAW)
         return df
@@ -159,20 +159,20 @@ def get_raw_data(use_cache=True, save=True, verbose=True):
     if save:
         df.to_csv(DATA_RAW)
         if verbose:
-            print(f"Rohdaten als Cache gespeichert: {DATA_RAW}")
+            print(f"Raw data saved as cache: {DATA_RAW}")
     return df
 
 
 def print_truncation_info(df_raw, y):
-    """Diagnostiziert, welche Reihen die Feature-Matrix zeitlich beschneiden."""
+    """Diagnoses which series truncate the feature matrix over time."""
     _last_obs = df_raw.apply(lambda s: s.last_valid_index())
-    print("Letzte gültige Beobachtung je Reihe (kürzeste zuerst):")
+    print("Last valid observation per series (shortest first):")
     print(_last_obs.sort_values().head(8).to_string())
     _gap = (
         (df_raw.index[-1].year - y.index[-1].year) * 12
         + df_raw.index[-1].month - y.index[-1].month
     )
-    print(f"\nRohdaten bis:        {df_raw.index[-1]:%Y-%m}")
-    print(f"Feature-Matrix bis:  {y.index[-1]:%Y-%m}")
-    print(f"Ungenutzte Monate:   {_gap}")
-    print("Grund: kürzeste Reihe in obiger Liste bestimmt das Enddatum der Feature-Matrix.")
+    print(f"\nRaw data up to:      {df_raw.index[-1]:%Y-%m}")
+    print(f"Feature matrix up to: {y.index[-1]:%Y-%m}")
+    print(f"Unused months:       {_gap}")
+    print("Reason: shortest series in the list above determines the end date of the feature matrix.")

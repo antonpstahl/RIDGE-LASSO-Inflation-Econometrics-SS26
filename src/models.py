@@ -6,9 +6,9 @@ from sklearn.linear_model import LassoCV, RidgeCV
 class AdaptiveLasso:
     """Adaptive LASSO via feature rescaling (sklearn-compatible).
 
-    Ridge-Initialisierung, da OLS bei p/n≈0.69 instabil ist.
-    Approximative adaptive Gewichtung — Oracle-Voraussetzung (√n-Konsistenz,
-    Zou 2006) ist bei p/n≈0.69 nicht garantiert.
+    Ridge initialisation, because OLS is unstable at p/n≈0.69.
+    Approximate adaptive weighting - the oracle prerequisite (√n consistency,
+    Zou 2006) is not guaranteed at p/n≈0.69.
     """
 
     def __init__(self, gamma=1.0, eps=1e-6, alphas=None, cv=5, max_iter=10000):
@@ -19,17 +19,17 @@ class AdaptiveLasso:
         self.max_iter = max_iter
 
     def fit(self, X, y):
-        # Schritt 1: Ridge als initialer Schätzer.
-        # RidgeCV ohne cv-Parameter nutzt sklearn-LOO-GCV (effiziente Leave-One-Out-
-        # Schätzung), das die Zeitstruktur ignoriert. Das ist hier bewusst: die
-        # Ridge-Koeffizienten dienen nur als Initialgewichte fuer die adaptive
-        # Skalierung (Schritt 2) — sie gehen nicht als Prognose ein. Der eigentliche
-        # Schätzer (LassoCV, Schritt 3) nutzt zeitkonformes TS-CV ueber self.cv.
+        # Step 1: Ridge as initial estimator.
+        # RidgeCV without a cv parameter uses sklearn LOO-GCV (efficient leave-one-out
+        # estimation), which ignores the time structure. This is intentional here: the
+        # Ridge coefficients only serve as initial weights for the adaptive
+        # scaling (step 2), they do not enter the forecast. The actual
+        # estimator (LassoCV, step 3) uses time-consistent TS-CV via self.cv.
         init = RidgeCV(alphas=np.logspace(-2, 4, 30)).fit(X, y)
         self._scale = np.abs(init.coef_) ** self.gamma + self.eps
-        # Schritt 2: Features rescalen  X̃_j = X_j · scale_j
+        # Step 2: rescale features  X̃_j = X_j * scale_j
         X_tilde = X * self._scale
-        # Schritt 3: Standard-LassoCV auf X̃
+        # Step 3: standard LassoCV on X̃
         self._lasso = LassoCV(
             alphas=self.alphas, cv=self.cv,
             max_iter=self.max_iter, n_jobs=-1,

@@ -7,16 +7,16 @@ from .config import AR_LAGS, LAGS, TEST_MONTHS
 
 
 def transform_to_yoy(df):
-    """Transformiert alle Spalten in YoY-Veraenderungsraten (%) -> stationaer."""
+    """Transforms all columns into YoY change rates (%) -> stationary."""
     df_yoy = df.pct_change(12) * 100
     return df_yoy.replace([np.inf, -np.inf], np.nan)
 
 
 def transform_to_mom(df):
-    """Transformiert alle Spalten in MoM-Veraenderungsraten (%) — Alternative zu YoY.
+    """Transforms all columns into MoM change rates (%) - alternative to YoY.
 
-    Robustheitsspezifikation (AP29): prueft, ob der Befund 'RW unschlagbar'
-    ein Artefakt der YoY-Wahl ist (G31 / Atkeson & Ohanian 2001).
+    Robustness specification (AP29): checks whether the finding 'RW unbeatable'
+    is an artefact of the YoY choice (G31 / Atkeson & Ohanian 2001).
     """
     df_mom = df.pct_change(1) * 100
     return df_mom.replace([np.inf, -np.inf], np.nan)
@@ -24,7 +24,7 @@ def transform_to_mom(df):
 
 def build_feature_matrix(df_yoy, lags=None, target_col="HVPI",
                          forecast_horizon=1, test_months=TEST_MONTHS):
-    """Erstellt leckage-freie Feature-Matrix X (verlagerte Praediktoren) und Ziel y."""
+    """Builds a leakage-free feature matrix X (lagged predictors) and target y."""
     if lags is None:
         lags = LAGS
     predictor_cols = [c for c in df_yoy.columns if c != target_col]
@@ -36,11 +36,12 @@ def build_feature_matrix(df_yoy, lags=None, target_col="HVPI",
     X = pd.concat(frames, axis=1)
     y = df_yoy[target_col]
 
-    # NaN-Filter: Spalten mit >20% NaN im Trainingsfenster ausschließen.
-    # Die Testgrenze wird im post-dropna-Indexraum bestimmt (nicht im pre-dropna-
-    # Indexraum), weil der pre-dropna-Frame NaN-Zeilen am Ende enthält (Prädiktoren
-    # ohne aktuellste Daten), die len(X) - test_months um mehrere Monate in das
-    # echte Testfenster verschieben würden. So enthält das Filterfenster 0 Testmonate.
+    # NaN filter: exclude columns with >20% NaN in the training window.
+    # The test boundary is determined in the post-dropna index space (not in the
+    # pre-dropna index space), because the pre-dropna frame contains NaN rows at the
+    # end (predictors without the most recent data), which would shift
+    # len(X) - test_months by several months into the actual test window. This way
+    # the filter window contains 0 test months.
     combined_pre = pd.concat([X, y], axis=1).dropna()
     if len(combined_pre) > test_months:
         train_cutoff = combined_pre.index[-test_months - 1]
@@ -54,17 +55,17 @@ def build_feature_matrix(df_yoy, lags=None, target_col="HVPI",
 
 
 def prepare_splits(X, y, train_end, ar_lags=None):
-    """Bereitet alle Datensplits und Skalierungen vor; gibt ein ctx-Dict zurueck.
+    """Prepares all data splits and scalings, returns a ctx dict.
 
-    Enthaelt:
-    - Haupt-Split (X_train/X_test/y_train/y_test, skaliert)
-    - ADL-Benchmark (X_ar, sc_ar, ar_model-Inputs)
-    - LASSO+HVPI-Makro-Mehrwert (X_plus, sc_plus)
+    Contains:
+    - main split (X_train/X_test/y_train/y_test, scaled)
+    - ADL benchmark (X_ar, sc_ar, ar_model inputs)
+    - LASSO+HVPI macro value-added (X_plus, sc_plus)
     """
     if ar_lags is None:
         ar_lags = AR_LAGS
 
-    # ── Haupt-Split ──────────────────────────────────────────────────────────
+    # --- Main split ---
     X_train, X_test = X.iloc[:train_end], X.iloc[train_end:]
     y_train, y_test = y.iloc[:train_end], y.iloc[train_end:]
 
@@ -72,7 +73,7 @@ def prepare_splits(X, y, train_end, ar_lags=None):
     X_train_s = scaler.fit_transform(X_train)
     X_test_s  = scaler.transform(X_test)
 
-    # ── ADL (HVPI-Eigen-Lags) ────────────────────────────────────────────────
+    # --- ADL (HVPI own lags) ---
     X_ar = pd.DataFrame({f"HVPI_L{l}": y.shift(l) for l in ar_lags})
     X_ar = X_ar.loc[y.index].dropna()
     y_ar = y.loc[X_ar.index]
@@ -83,7 +84,7 @@ def prepare_splits(X, y, train_end, ar_lags=None):
 
     sc_ar = StandardScaler()
 
-    # ── LASSO + HVPI-Eigen-Lags (Makro-Mehrwert) ─────────────────────────────
+    # --- LASSO + HVPI own lags (macro value-added) ---
     X_plus = X.copy()
     for l in ar_lags:
         X_plus[f"HVPI_L{l}"] = y.shift(l)
@@ -98,13 +99,13 @@ def prepare_splits(X, y, train_end, ar_lags=None):
     X_plus_train_s = sc_plus.fit_transform(X_plus_train)
     X_plus_test_s  = sc_plus.transform(X_plus_test)
 
-    # Start-Indizes für Rolling-Origin (erste OOS-Periode)
+    # Start indices for rolling origin (first OOS period)
     test_start = y_test.index[0]
     start_ar   = int((X_ar.index >= test_start).argmax())
     start_plus = int((X_plus.index >= test_start).argmax())
 
     return {
-        # Haupt
+        # Main
         "X_train":    X_train,   "X_test":    X_test,
         "y_train":    y_train,   "y_test":    y_test,
         "X_train_s":  X_train_s, "X_test_s":  X_test_s,

@@ -1,6 +1,6 @@
-Modell,Test RMSE,CI 2.5%,CI 97.5%,Test,Stat.,p-Wert,Sig.,p adj. (Bonf.),Sig. adj.
-Random Walk,0.9398,0.7456,1.0979,–,,,–,,–
-Lag-Modell (ADL),1.0542,0.764,1.3175,CW,1.35,0.0885,*,0.6195,n.s.
+Model,Test RMSE,CI 2.5%,CI 97.5%,Test,Stat.,p-value,Sig.,p adj. (Bonf.),Sig. adj.
+Random Walk,0.9398,0.7456,1.0979,-,,,-,,-
+Lag model (ADL),1.0542,0.764,1.3175,CW,1.35,0.0885,*,0.6195,n.s.
 OLS,3.4037,2.1921,4.3771,DM,-3.407,0.0017,**,0.0119,**
 Ridge,1.9571,1.462,2.3857,DM,-4.167,0.0002,**,0.0014,**
 LASSO,1.8312,1.5052,2.164,DM,-4.761,0.0,**,0.0,**

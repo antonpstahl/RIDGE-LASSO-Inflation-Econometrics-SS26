@@ -1,5 +1,5 @@
-Variable,Quelle,Datensatz,Code / Filter,Freq.,SA
-HVPI,ECB SDW,ICP/M.DE.N.000000.4.INX,"DE, 000000 (gesamt), Index 2015=100",M,–
+Variable,Source,Dataset,Code / Filter,Freq.,SA
+HVPI,ECB SDW,ICP/M.DE.N.000000.4.INX,"DE, 000000 (total), Index 2015=100",M,-
 IP_Verarbeitendes_Gew,Eurostat,sts_inpr_m,"nace_r2=C, unit=I15, geo=DE",M,NSA
 IP_Nahrungs_Genuss,Eurostat,sts_inpr_m,"nace_r2=C10-C12, unit=I15, geo=DE",M,NSA
 IP_Textil_Leder,Eurostat,sts_inpr_m,"nace_r2=C13-C15, unit=I15, geo=DE",M,NSA
@@ -29,7 +29,7 @@ ALQ_Frauen,Eurostat,une_rt_m,"sex=F, age=TOTAL, unit=PC_ACT, geo=DE",M,SA
 ALQ_Kern_Ges,Eurostat,une_rt_m,"sex=T, age=Y25-74, unit=PC_ACT, geo=DE",M,SA
 ALQ_Kern_M,Eurostat,une_rt_m,"sex=M, age=Y25-74, unit=PC_ACT, geo=DE",M,SA
 ALQ_Kern_F,Eurostat,une_rt_m,"sex=F, age=Y25-74, unit=PC_ACT, geo=DE",M,SA
-LCI_Lohnkosten_BN,Eurostat,lc_lci_r2_q,"nace_r2=B-N, lcstruct=D1_D4_MD5, unit=I20, geo=DE; Q→M via ffill",Q→M,NSA
-LCI_Loehne_BN,Eurostat,lc_lci_r2_q,"nace_r2=B-N, lcstruct=D11, unit=I20, geo=DE; Q→M via ffill",Q→M,NSA
-LCI_Lohnkosten_Ind,Eurostat,lc_lci_r2_q,"nace_r2=B-F, lcstruct=D1_D4_MD5, unit=I20, geo=DE; Q→M via ffill",Q→M,NSA
-LCI_Loehne_Ind,Eurostat,lc_lci_r2_q,"nace_r2=B-F, lcstruct=D11, unit=I20, geo=DE; Q→M via ffill",Q→M,NSA
+LCI_Lohnkosten_BN,Eurostat,lc_lci_r2_q,"nace_r2=B-N, lcstruct=D1_D4_MD5, unit=I20, geo=DE; Q->M via ffill",Q->M,NSA
+LCI_Loehne_BN,Eurostat,lc_lci_r2_q,"nace_r2=B-N, lcstruct=D11, unit=I20, geo=DE; Q->M via ffill",Q->M,NSA
+LCI_Lohnkosten_Ind,Eurostat,lc_lci_r2_q,"nace_r2=B-F, lcstruct=D1_D4_MD5, unit=I20, geo=DE; Q->M via ffill",Q->M,NSA
+LCI_Loehne_Ind,Eurostat,lc_lci_r2_q,"nace_r2=B-F, lcstruct=D11, unit=I20, geo=DE; Q->M via ffill",Q->M,NSA

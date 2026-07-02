@@ -1,1 +1,1 @@
-"LASSO & Ridge Inflationsprognose — wiederverwendbare Analyse-Funktionen."
+"LASSO & Ridge inflation forecast - reusable analysis functions."
