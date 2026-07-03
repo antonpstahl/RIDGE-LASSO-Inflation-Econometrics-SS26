@@ -159,6 +159,14 @@ def fig_04_forecast(ctx):
     ax.plot(y_pred_lasso_plus.index, y_pred_lasso_plus.values,
             "--", color="#9C27B0", linewidth=1.5,
             label=f"LASSO+HVPI (RMSE={rmse_lasso_plus_test:.3f})", alpha=0.85)
+    # Optional: RF-change (nonlinear benchmark, not in the paper) - only if supplied.
+    y_pred_rf_chg = ctx.get("y_pred_rf_chg_test")
+    if y_pred_rf_chg is not None:
+        rmse_rf_chg = float(np.sqrt(np.mean(
+            (y_pred_rf_chg.reindex(y_test.index) - y_test) ** 2)))
+        ax.plot(y_pred_rf_chg.index, y_pred_rf_chg.values,
+                "--", color="#00838F", linewidth=1.5,
+                label=f"RF-change (RMSE={rmse_rf_chg:.3f})", alpha=0.85)
     ax.axhline(0, color="gray", linewidth=0.7, linestyle=":")
     ax.set_title("Forecast vs. actual HICP inflation rate (test set)")
     ax.set_ylabel("HICP inflation rate (YoY, %)")

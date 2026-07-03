@@ -65,6 +65,41 @@ def rolling_origin(model_factory, X, y, start, desc="", suppress_fp=False):
     return pd.Series(preds, index=idx)
 
 
+def rf_change_single_split(splits, n_estimators=500, max_features=1/3,
+                           min_samples_leaf=5, random_state=42):
+    """Single-split RF-change forecast on the fixed test set (for fig_04).
+
+    Mirrors the rolling-origin `_rf_on_change` variant (Section 4.5.2b) but in the
+    single train/test split used by fig_04/fig_05: the RF forecasts the change
+    d = y_t - y_{t-1} on the lags+macro matrix (X_plus), and the level prediction is
+    y_{t-1} + RF(d). This keeps the target stationary and in-range, so the trees never
+    have to extrapolate beyond the training maximum - the structural weakness that sinks
+    a level RF in the shock. Comparable in scheme (and thus in RMSE) to the other fig_04
+    lines. Not part of the paper - a nonlinear benchmark check.
+    """
+    from sklearn.ensemble import RandomForestRegressor
+
+    X_plus, y_plus = splits["X_plus"], splits["y_plus"]
+    y_train, y_test = splits["y_train"], splits["y_test"]
+
+    d       = y_plus.diff()
+    tr_mask = X_plus.index <= y_train.index[-1]
+    Xtr     = X_plus.loc[tr_mask].iloc[1:]      # drop the first NaN of diff()
+    dtr     = d.loc[Xtr.index]
+
+    sc = StandardScaler().fit(Xtr)
+    rf = RandomForestRegressor(
+        n_estimators=n_estimators, max_features=max_features,
+        min_samples_leaf=min_samples_leaf, random_state=random_state, n_jobs=-1,
+    ).fit(sc.transform(Xtr), dtr)
+
+    preds = []
+    for t in y_test.index:
+        prev = y_plus.iloc[y_plus.index.get_loc(t) - 1]
+        preds.append(prev + rf.predict(sc.transform(X_plus.loc[[t]]))[0])
+    return pd.Series(preds, index=y_test.index)
+
+
 # --- Diebold-Mariano ---
 
 def diebold_mariano(e_rw, e_mod, h=1):
