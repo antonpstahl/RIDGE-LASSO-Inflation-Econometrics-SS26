@@ -136,7 +136,7 @@ def compute_oos_predictions(models_ctx, splits, X, y, train_end):
     # Random Walk
     oos_rw = y.shift(1).iloc[train_end:].rename("RW")
 
-    # Lag model (ADL)
+    # Lag model (AR)
     oos_ar = rolling_origin(
         lambda: LinearRegression(), X_ar, y_ar, start_ar, desc="AR",
     ).rename("AR")
@@ -528,7 +528,7 @@ def compute_single_split_inference(models_ctx, splits, block_len: int = 6,
     DM test (HLN-adjusted, h=1) against Random Walk - identical implementation
     to the rolling-origin one (compute_dm_tests), but on the single-split errors.
 
-    Nested models (lag model/ADL, LASSO+HICP) use the Clark-West test
+    Nested models (lag model/AR, LASSO+HICP) use the Clark-West test
     (2007, one-sided), all other models the DM test (HLN-adjusted, two-sided).
 
     Parameters
@@ -553,7 +553,7 @@ def compute_single_split_inference(models_ctx, splits, block_len: int = 6,
 
     preds_map = {
         "Random Walk":      _s(models_ctx["y_pred_rw_test"]),
-        "Lag model (ADL)":  _s(models_ctx["y_pred_ar_test"]),
+        "Lag model (AR)":  _s(models_ctx["y_pred_ar_test"]),
         "OLS":              _s(models_ctx["y_pred_ols_test"]),
         "Ridge":            _s(models_ctx["y_pred_ridge_test"]),
         "LASSO":            _s(models_ctx["y_pred_lasso_test"]),
@@ -565,15 +565,15 @@ def compute_single_split_inference(models_ctx, splits, block_len: int = 6,
     e_rw_series = (_s(models_ctx["y_pred_rw_test"]) - y_test).dropna()
     T = len(e_rw_series)
 
-    # Nested models on the single split: lag model (ADL) and LASSO+HICP
+    # Nested models on the single split: lag model (AR) and LASSO+HICP
     # contain HVPI_L1 (RW predictor) -> Clark-West test instead of DM.
-    _NESTED = {"Lag model (ADL)", "LASSO+HVPI"}
+    _NESTED = {"Lag model (AR)", "LASSO+HVPI"}
 
     records = []
     print(f"\nSingle-window inference: block-bootstrap RMSE 95% CI + DM/CW test (T={T})")
     print(f"Block bootstrap: B={B}, block length l={block_len} (≈ √T={int(T**0.5)})")
     print("DM (HLN-adj., two-sided) for non-nested, CW (2007, one-sided) for")
-    print("nested models (lag model/ADL, LASSO+HICP ⊃ RW).")
+    print("nested models (lag model/AR, LASSO+HICP ⊃ RW).")
     print(
         f"{'Model':<22} {'RMSE':>7} {'CI [2.5%, 97.5%]':>20}"
         f" {'Test':>4} {'Stat.':>9} {'p-value':>9} {'Sig.':>6}"

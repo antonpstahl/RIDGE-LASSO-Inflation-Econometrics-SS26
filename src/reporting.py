@@ -143,7 +143,7 @@ def fig_04_forecast(ctx):
             label=f"Random Walk (RMSE={rmse_rw_test:.3f})", alpha=0.9)
     ax.plot(y_pred_ar_test.index, y_pred_ar_test.values,
             "-.", color="#795548", linewidth=1.5,
-            label=f"Lag model ADL (RMSE={rmse_ar_test:.3f})", alpha=0.9)
+            label=f"Lag model AR (RMSE={rmse_ar_test:.3f})", alpha=0.9)
     ax.plot(y_test.index, y_pred_ols_test,
             "--", color=COLORS["OLS"], linewidth=1.3,
             label=f"OLS (RMSE={np.sqrt(mse_ols_test):.3f})", alpha=0.7)
@@ -180,17 +180,18 @@ def fig_05_mse_comparison(ctx):
     mse_lasso_test = ctx["mse_lasso_test"]
     mse_enet_test  = ctx["mse_enet_test"]
     mse_lasso_plus = ctx["mse_lasso_plus_test"]
+    mse_alasso     = ctx["mse_alasso_test"]
 
     # Order mirrors the grouping: benchmark -> with own lags -> illustrative
-    all_models = ["RW", "ADL", "LASSO+HVPI", "OLS", "Ridge", "LASSO", "Elastic Net"]
+    all_models = ["RW", "AR", "LASSO+HVPI", "OLS", "Ridge", "LASSO", "Elastic Net", "Adaptive LASSO"]
     mse_vals   = [mse_rw_test, mse_ar_test, mse_lasso_plus,
-                  mse_ols_test, mse_ridge_test, mse_lasso_test, mse_enet_test]
+                  mse_ols_test, mse_ridge_test, mse_lasso_test, mse_enet_test, mse_alasso]
     rmse_vals  = [np.sqrt(v) for v in mse_vals]
     colors_bar = ["#9E9E9E", "#795548", "#9C27B0",
-                  COLORS["OLS"], COLORS["Ridge"], COLORS["LASSO"], COLORS["ElasticNet"]]
-    # Illustrative (indices 3-6): hatched bars, slightly transparent
-    hatches    = ["", "", "", "///", "///", "///", "///"]
-    alphas     = [0.9, 0.9, 0.9, 0.55, 0.55, 0.55, 0.55]
+                  COLORS["OLS"], COLORS["Ridge"], COLORS["LASSO"], COLORS["ElasticNet"], "#009688"]
+    # Illustrative (indices 3-7): hatched bars, slightly transparent
+    hatches    = ["", "", "", "///", "///", "///", "///", "///"]
+    alphas     = [0.9, 0.9, 0.9, 0.55, 0.55, 0.55, 0.55, 0.55]
 
     fig, axes = plt.subplots(1, 2, figsize=(15, 5))
     x = np.arange(len(all_models)); width = 0.5
@@ -218,10 +219,10 @@ def fig_05_mse_comparison(ctx):
     # Legend
     from matplotlib.patches import Patch as _Patch
     legend_handles = [
-        _Patch(color="#9E9E9E",          label="Benchmark (RW, ADL)"),
+        _Patch(color="#9E9E9E",          label="Benchmark (RW, AR)"),
         _Patch(color="#9C27B0",          label="With own lags / core comparison (LASSO+HVPI)"),
         _Patch(color="gray", alpha=0.55, hatch="///",
-               label="Illustrative - macro only, no own lags (OLS, Ridge, LASSO, EN)"),
+               label="Illustrative - macro only, no own lags (OLS, Ridge, LASSO, EN, Adaptive LASSO)"),
     ]
     axes[1].legend(handles=legend_handles, fontsize=8, loc="upper right")
 
@@ -467,7 +468,7 @@ def export_results_table(results, y_test):
         caption=(
             r"Forecast models compared: mean RMSE, relative RMSE (RMSE/RW) "
             f"and $R^2$ on the test set ({_t0_tex}--{_t1_tex}). "
-            r"\emph{Benchmark}: random walk and lag model (ADL, HICP own lags only). "
+            r"\emph{Benchmark}: random walk and lag model (AR, HICP own lags only). "
             r"\emph{Core comparison}: LASSO+HVPI (own lags + macro) - "
             r"economically sound, as \emph{ceteris paribus} with respect to own lags. "
             r"\emph{Illustrative}: OLS-Adaptive LASSO without own lags "
@@ -953,7 +954,7 @@ def update_readmes(ctx):
         f"|--------|----------:|----------:|--------:|--------:|-----:|-----------:|\n"
         f"| *- Benchmark -* | | | | | | |\n"
         f"| **Random Walk** | - | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | - | - |\n"
-        f"| Lag-Modell (ADL) | - | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag model (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| Lag-Modell (AR) | - | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag model (AR)') or 'n.s.'} | {len(AR_LAGS)} |\n"
         f"| *- Zentraler Vergleich: Eigen-Lags + Makro (ökonomisch sauber, ceteris paribus) -* | | | | | | |\n"
         f"| LASSO + HVPI-Lags | {lasso_plus_alpha:.3f} | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
         f"| *- Didaktisch: nur Makro, ohne Eigen-Lags (strukturell benachteiligt) -* | | | | | | |\n"
@@ -962,7 +963,7 @@ def update_readmes(ctx):
         f"| Elastic Net | {lambda_enet:.3f} | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
         f"| Ridge | {lambda_ridge:.1f} | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
         f"| OLS | - | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
-        f"**Zentraler Befund:** Lag-Modell (ADL, nur Eigen-Lags) RMSE/RW = {_ar/_rw:.2f} und "
+        f"**Zentraler Befund:** Lag-Modell (AR, nur Eigen-Lags) RMSE/RW = {_ar/_rw:.2f} und "
         f"LASSO+HVPI (Eigen-Lags + Makro) RMSE/RW = {_lp/_rw:.2f}, also "
         f"Makro-Mehrwert über die Persistenz hinaus etwa 0 (ceteris paribus).\n"
         f"Den reinen Makro-Modellen (didaktischer Teil) fehlt der stärkste Einzelprädiktor (HVPI-Lag). "
@@ -993,7 +994,7 @@ def update_readmes(ctx):
         f"|-------|----------:|----------:|--------:|--------:|-----:|-----------:|\n"
         f"| *- Benchmark -* | | | | | | |\n"
         f"| **Random Walk** | - | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | - | - |\n"
-        f"| Lag model (ADL) | - | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag model (ADL)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| Lag model (AR) | - | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag model (AR)') or 'n.s.'} | {len(AR_LAGS)} |\n"
         f"| *- Central comparison: own lags + macro (economically clean, ceteris paribus) -* | | | | | | |\n"
         f"| LASSO + HICP lags | {lasso_plus_alpha:.3f} | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
         f"| *- Didactic: macro only, no own lags (structurally disadvantaged) -* | | | | | | |\n"
@@ -1002,7 +1003,7 @@ def update_readmes(ctx):
         f"| Elastic Net | {lambda_enet:.3f} | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
         f"| Ridge | {lambda_ridge:.1f} | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
         f"| OLS | - | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
-        f"**Central finding:** Lag model (ADL, own lags only) RMSE/RW = {_ar/_rw:.2f} - "
+        f"**Central finding:** Lag model (AR, own lags only) RMSE/RW = {_ar/_rw:.2f} - "
         f"LASSO+HICP (own lags + macro) RMSE/RW = {_lp/_rw:.2f}, so "
         f"macro value-added beyond persistence ≈ 0 (ceteris paribus).\n"
         f"The pure macro models (didactic group) lack the strongest single predictor (HICP lag) - "
@@ -1113,7 +1114,7 @@ def print_summary(ctx):
     _groups = [
         ("-- Benchmark ------------------------------------------------------", [
             ("Random Walk",  ctx["rmse_rw_test"],            ctx["r2_rw_test"],        "-"),
-            ("ADL",          ctx["rmse_ar_test"],            ctx["r2_ar_test"],        str(len(AR_LAGS))),
+            ("AR",          ctx["rmse_ar_test"],            ctx["r2_ar_test"],        str(len(AR_LAGS))),
         ]),
         ("-- Core comparison: own lags + macro (ceteris paribus) ----------", [
             ("LASSO+HVPI",   ctx["rmse_lasso_plus_test"],    ctx["r2_lasso_plus_test"], str(ctx["n_nonzero_plus"])),
@@ -1138,7 +1139,7 @@ def print_summary(ctx):
     _ar  = ctx["rmse_ar_test"]
     _lp  = ctx["rmse_lasso_plus_test"]
     print(f"\nCore finding (ceteris paribus):")
-    print(f"  ADL (own lags only):       RMSE/RW = {_ar/rmse_rw:.3f}")
+    print(f"  AR (own lags only):       RMSE/RW = {_ar/rmse_rw:.3f}")
     print(f"  LASSO+HVPI (own lags + macro): RMSE/RW = {_lp/rmse_rw:.3f}")
     print(f"  → macro value-added beyond persistence ≈ {(_lp - _ar)/rmse_rw:+.3f} (RMSE/RW)")
     best = results["Test RMSE"].astype(float).idxmin()

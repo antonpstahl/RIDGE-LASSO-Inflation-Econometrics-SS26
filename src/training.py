@@ -59,7 +59,7 @@ def fit_all_models(X, y, splits, tscv=None):
         mse_rw_test=mse_rw_test, rmse_rw_test=rmse_rw_test, r2_rw_test=r2_rw_test,
     ))
 
-    # --- Lag model (ADL) ---
+    # --- Lag model (AR) ---
     ar_model = LinearRegression()
     ar_model.fit(sc_ar.fit_transform(X_ar_train), y_ar_train)
     y_pred_ar_test = pd.Series(
@@ -68,7 +68,7 @@ def fit_all_models(X, y, splits, tscv=None):
     mse_ar_test  = mean_squared_error(y_test, y_pred_ar_test)
     r2_ar_test   = r2_score(y_test, y_pred_ar_test)
     rmse_ar_test = np.sqrt(mse_ar_test)
-    print(f"Lag model (ADL)       - Test MSE: {mse_ar_test:.4f}  |  "
+    print(f"Lag model (AR)       - Test MSE: {mse_ar_test:.4f}  |  "
           f"RMSE: {rmse_ar_test:.4f}  |  R²: {r2_ar_test:.4f}")
     ctx.update(dict(
         ar_model=ar_model,
@@ -232,10 +232,10 @@ def _build_results_table(ctx, n_feat, n_plus):
     for LaTeX separator lines and README grouping.
     """
     c = ctx
-    # Order: [Benchmark] RW, ADL -> [With own lags] LASSO+HVPI -> [illustrative] OLS, Ridge, LASSO, EN, Adaptive LASSO
+    # Order: [Benchmark] RW, AR -> [With own lags] LASSO+HVPI -> [illustrative] OLS, Ridge, LASSO, EN, Adaptive LASSO
     results = pd.DataFrame({
         "Model": [
-            "Random Walk", "Lag model (ADL)", "LASSO+HVPI",
+            "Random Walk", "Lag model (AR)", "LASSO+HVPI",
             "OLS", "Ridge", "LASSO", "Elastic Net", "Adaptive LASSO",
         ],
         "λ": [

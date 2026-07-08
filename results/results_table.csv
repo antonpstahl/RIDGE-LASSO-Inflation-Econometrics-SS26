@@ -1,6 +1,6 @@
 Model,Group,λ,Train MSE,Test MSE,Test RMSE,RMSE/RW,Test R²,Non-zero coeff.
 Random Walk,Benchmark,-,-,0.8833,0.9398,1.0,0.8933,-
-Lag model (ADL),Benchmark,-,-,1.1114,1.0542,1.1217,0.8657,5
+Lag model (AR),Benchmark,-,-,1.1114,1.0542,1.1217,0.8657,5
 LASSO+HVPI,With own lags,0.06368,-,2.1741,1.4745,1.5689,0.7374,7 / 160
 OLS,Illustrative,-,0.0242,11.585,3.4037,3.6216,-0.3994,155
 Ridge,Illustrative,54.789,0.1044,3.8303,1.9571,2.0824,0.5373,155

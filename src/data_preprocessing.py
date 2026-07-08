@@ -59,7 +59,7 @@ def prepare_splits(X, y, train_end, ar_lags=None):
 
     Contains:
     - main split (X_train/X_test/y_train/y_test, scaled)
-    - ADL benchmark (X_ar, sc_ar, ar_model inputs)
+    - AR benchmark (X_ar, sc_ar, ar_model inputs)
     - LASSO+HVPI macro value-added (X_plus, sc_plus)
     """
     if ar_lags is None:
@@ -73,7 +73,7 @@ def prepare_splits(X, y, train_end, ar_lags=None):
     X_train_s = scaler.fit_transform(X_train)
     X_test_s  = scaler.transform(X_test)
 
-    # --- ADL (HVPI own lags) ---
+    # --- AR (HVPI own lags) ---
     X_ar = pd.DataFrame({f"HVPI_L{l}": y.shift(l) for l in ar_lags})
     X_ar = X_ar.loc[y.index].dropna()
     y_ar = y.loc[X_ar.index]
@@ -110,7 +110,7 @@ def prepare_splits(X, y, train_end, ar_lags=None):
         "y_train":    y_train,   "y_test":    y_test,
         "X_train_s":  X_train_s, "X_test_s":  X_test_s,
         "scaler":     scaler,
-        # ADL
+        # AR
         "X_ar":       X_ar,      "y_ar":      y_ar,
         "X_ar_train": X_ar_train,"X_ar_test": X_ar_test,
         "y_ar_train": y_ar_train,"sc_ar":     sc_ar,
