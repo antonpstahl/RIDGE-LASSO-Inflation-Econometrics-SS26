@@ -100,6 +100,59 @@ def rf_change_single_split(splits, n_estimators=500, max_features=1/3,
     return pd.Series(preds, index=y_test.index)
 
 
+# --- Explainable Boosting Machine (nonlinear, interpretable benchmark) ---
+
+def ebm_single_split(splits, interactions=0, random_state=42):
+    """Single-split Explainable Boosting Machine on the lags+macro matrix (X_plus).
+
+    An EBM (Lou et al. 2013; Nori et al. 2019) is a glassbox GAM:
+    y ≈ β₀ + Σ_j f_j(x_j) (+ optional pairwise interactions). Each shape function f_j is
+    a gradient-boosted ensemble of shallow trees on a *single* feature, so the model is
+    nonlinear yet fully decomposable - unlike the random forest it yields global feature
+    importances directly, comparable to the LASSO selection (fig_08).
+
+    Fitted on the raw (unscaled) X_plus: EBMs bin each feature independently and are
+    scale-invariant, so standardisation is unnecessary. Trained on the level y (same
+    target and feature set as LASSO+HVPI), which makes the term importances interpretable
+    as drivers of the inflation *level*. `interactions=0` keeps a pure additive GAM -
+    the cleanest importances, and appropriate at p/n≈0.75 where pairwise terms overfit.
+
+    Note: like the level random forest (Section 4.5.2b) the level EBM cannot extrapolate
+    beyond the training maximum, so its single-split test RMSE degrades sharply in the
+    energy-price shock - it is reported for context, but the deliverable is the global
+    feature importance decomposition, not the point forecast. Not part of the paper -
+    a nonlinear, interpretable benchmark (model-class caveat, Section 6).
+
+    Returns a dict with the fitted model, test forecast, RMSE and the sorted global
+    term importances.
+    """
+    from interpret.glassbox import ExplainableBoostingRegressor
+
+    X_plus_train = splits["X_plus_train"]
+    X_plus_test  = splits["X_plus_test"]
+    y_plus_train = splits["y_plus_train"]
+    y_test       = splits["y_test"]
+
+    ebm = ExplainableBoostingRegressor(
+        interactions=interactions, random_state=random_state, n_jobs=-1,
+    ).fit(X_plus_train, y_plus_train)
+
+    y_pred_test = pd.Series(ebm.predict(X_plus_test), index=X_plus_test.index)
+    rmse_test   = float(np.sqrt(mean_squared_error(
+        y_test.loc[y_pred_test.index], y_pred_test)))
+
+    importances = pd.Series(
+        ebm.term_importances(), index=ebm.term_names_
+    ).sort_values(ascending=False)
+
+    return {
+        "ebm":         ebm,
+        "y_pred_test": y_pred_test,
+        "rmse_test":   rmse_test,
+        "importances": importances,
+    }
+
+
 # --- Diebold-Mariano ---
 
 def diebold_mariano(e_rw, e_mod, h=1):

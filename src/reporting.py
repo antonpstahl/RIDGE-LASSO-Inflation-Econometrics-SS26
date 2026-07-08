@@ -457,6 +457,37 @@ def fig_13_horizons(df_horizons):
     print("Figure saved: fig_13_horizonte_rmse.png")
 
 
+# --- fig_15: EBM global feature importances ---
+
+def fig_15_ebm_importance(ebm_ctx, top_n=20):
+    """Global feature importances of the EBM (mean absolute contribution per term).
+
+    Horizontal bar chart of the top-N terms. The nonlinear, glassbox counterpart to the
+    LASSO selection (fig_08): both answer "which predictors drive inflation" - LASSO
+    linearly via coefficients, the EBM nonlinearly via per-feature shape functions.
+    Pairwise interaction terms (if `interactions>0`) are rendered as "feat_a x feat_b".
+    """
+    imp    = ebm_ctx["importances"].head(top_n).iloc[::-1]  # ascending for barh
+    labels = [t.replace(" & ", " x ") for t in imp.index]
+
+    fig, ax = plt.subplots(figsize=(12, max(5, len(imp) * 0.35)))
+    # "#00838F" = the teal used for the nonlinear RF-change benchmark in fig_04
+    ax.barh(range(len(imp)), imp.values, color="#00838F", alpha=0.85)
+    ax.set_yticks(range(len(imp)))
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.set_xlabel("Mean absolute score (global importance)")
+    ax.set_title(
+        f"EBM global feature importances (top-{len(imp)} of "
+        f"{len(ebm_ctx['importances'])} terms)\n"
+        f"nonlinear glassbox GAM on lags+macro - single-split test RMSE = "
+        f"{ebm_ctx['rmse_test']:.3f}"
+    )
+    plt.tight_layout()
+    _save("fig_15_ebm_importance.png")
+    plt.show()
+    print("Figure saved: fig_15_ebm_importance.png")
+
+
 # --- Table exports ---
 
 def export_results_table(results, y_test):
