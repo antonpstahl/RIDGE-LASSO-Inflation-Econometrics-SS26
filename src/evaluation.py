@@ -65,6 +65,39 @@ def rolling_origin(model_factory, X, y, start, desc="", suppress_fp=False):
     return pd.Series(preds, index=idx)
 
 
+def rolling_origin_change(model_factory, X, y, start, desc="", scale=True):
+    """Rolling-origin forecast of the *level* via the change d = y_t - y_{t-1}.
+
+    Prediction = y_{t-1} + model(d). Keeps the target stationary and in-range, so
+    tree-based models never have to extrapolate beyond the training maximum - the
+    structural weakness of a level forecast in the energy-price shock (cf.
+    `rf_change_single_split`). Effectively RW + model correction. Mirrors
+    `rolling_origin`, but the estimator learns the change and the level is reconstructed.
+    """
+    try:
+        from tqdm.auto import tqdm as _tqdm
+        _iter = _tqdm(range(start, len(y)), desc=desc or "Rolling-Origin (change)",
+                      leave=False)
+    except ImportError:
+        _iter = range(start, len(y))
+
+    d          = y.diff()
+    preds, idx = [], []
+    for t in _iter:
+        Xtr, dtr = X.iloc[1:t], d.iloc[1:t]      # drop the first NaN of diff()
+        if scale:
+            sc   = StandardScaler().fit(Xtr)
+            m    = model_factory().fit(sc.transform(Xtr), dtr)
+            pred = y.iloc[t - 1] + m.predict(sc.transform(X.iloc[[t]]))[0]
+        else:
+            m    = model_factory().fit(Xtr, dtr)
+            pred = y.iloc[t - 1] + m.predict(X.iloc[[t]])[0]
+        preds.append(pred)
+        idx.append(y.index[t])
+
+    return pd.Series(preds, index=idx)
+
+
 def rf_change_single_split(splits, n_estimators=500, max_features=1/3,
                            min_samples_leaf=5, random_state=42):
     """Single-split RF-change forecast on the fixed test set (for fig_04).
@@ -151,6 +184,98 @@ def ebm_single_split(splits, interactions=0, random_state=42):
         "rmse_test":   rmse_test,
         "importances": importances,
     }
+
+
+def compute_ebm_oos(oos_ctx, splits, interactions=0, random_state=42, shock_end=None):
+    """Rolling-origin EBM on lags+macro (X_plus): level and change variants.
+
+    Evaluates the nonlinear glassbox benchmark with the *same* rolling-origin protocol
+    (expanding window, h=1, per-origin refit) as the linear models and the random forest
+    (Section 4.5.2b), so its predictive ability vs. the random walk rests on the same
+    footing as the rest of the analysis - not on a single train/test split.
+
+    - EBM (lags+macro): forecasts the YoY level directly. Like the level RF it cannot
+      extrapolate beyond the training maximum, so it degrades sharply in the shock.
+    - EBM-change (lags+macro): forecasts the change d=y_t-y_{t-1} and adds y_{t-1}
+      (= RW + EBM correction). In-range - the fair nonlinear analog to LASSO+HVPI/AR.
+
+    Tests vs. RW on the common OOS window: Diebold-Mariano (HLN, two-sided) for the
+    non-nested level EBM; Clark-West (2007, one-sided, nested) for the change EBM,
+    which nests the random walk. Returns forecasts, a regime RMSE/RW table and the tests.
+    """
+    from interpret.glassbox import ExplainableBoostingRegressor
+    from .config import REGIME_SHOCK_END
+
+    if shock_end is None:
+        shock_end = REGIME_SHOCK_END
+
+    X_plus     = splits["X_plus"]
+    y_plus     = splits["y_plus"]
+    start_plus = splits["start_plus"]
+
+    def _ebm():
+        return ExplainableBoostingRegressor(
+            interactions=interactions, random_state=random_state, n_jobs=-1,
+        )
+
+    oos_ebm = rolling_origin(
+        _ebm, X_plus, y_plus, start_plus, desc="EBM (lags+macro)",
+    ).rename("EBM (lags+macro)")
+    oos_ebm_chg = rolling_origin_change(
+        _ebm, X_plus, y_plus, start_plus, desc="EBM-change (lags+macro)",
+    ).rename("EBM-change (lags+macro)")
+
+    y_ref  = oos_ctx["y_oos_ref"]
+    oos_rw = oos_ctx["oos_df"]["RW"]
+    common = oos_ebm.index.intersection(y_ref.index)
+    shock_ts = pd.Timestamp(shock_end)
+    idx_s = common[common <= shock_ts]
+    idx_d = common[common >  shock_ts]
+
+    def _rmse(series, idx):
+        p = series.reindex(idx).dropna()
+        a = y_ref.loc[p.index]
+        return float(np.sqrt(np.mean((p - a) ** 2))) if len(p) else np.nan
+
+    refs = [
+        ("RW",                      oos_rw),
+        ("AR",                      oos_ctx["oos_ar"]),
+        ("LASSO+HVPI",              oos_ctx["oos_lasso_plus"]),
+        ("EBM (lags+macro)",        oos_ebm),
+        ("EBM-change (lags+macro)", oos_ebm_chg),
+    ]
+    df = pd.DataFrame([
+        {"Model": n,
+         "RMSE Shock":    _rmse(s, idx_s),
+         "RMSE Disinfl.": _rmse(s, idx_d),
+         "RMSE Total":    _rmse(s, common)}
+        for n, s in refs
+    ]).set_index("Model")
+    rw_s, rw_d, rw_g = df.loc["RW"]
+    df["RMSE/RW Shock"]    = (df["RMSE Shock"]    / rw_s).round(3)
+    df["RMSE/RW Disinfl."] = (df["RMSE Disinfl."] / rw_d).round(3)
+    df["RMSE/RW Total"]    = (df["RMSE Total"]    / rw_g).round(3)
+
+    # Tests vs. RW on the shared OOS window (aligned errors)
+    def _err(series):
+        p = series.reindex(common).dropna()
+        return p - y_ref.loc[p.index]
+
+    e_rw = _err(oos_rw)
+
+    def _aligned(e_mod):
+        ix = e_rw.index.intersection(e_mod.index)
+        return e_rw.loc[ix].to_numpy(), e_mod.loc[ix].to_numpy()
+
+    dm_stat, dm_p = diebold_mariano(*_aligned(_err(oos_ebm)))   # non-nested level EBM
+    cw_stat, cw_p = clark_west(*_aligned(_err(oos_ebm_chg)))    # nested change EBM
+
+    return dict(
+        oos_ebm=oos_ebm, oos_ebm_chg=oos_ebm_chg,
+        df_ebm=df, common=common, idx_shock=idx_s, idx_disfl=idx_d,
+        dm_level=(dm_stat, dm_p), cw_change=(cw_stat, cw_p),
+        shock_end=shock_end,
+    )
 
 
 # --- Diebold-Mariano ---
