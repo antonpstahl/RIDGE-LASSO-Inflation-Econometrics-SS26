@@ -285,7 +285,7 @@ def test_rolling_origin_no_lookahead():
         f"Look-ahead suspicion: first forecast = {first_pred:.3f} (expected ≈ 0)"
 
 
-# --- MoM robustness check (AP29) ---
+# --- MoM robustness check ---
 
 def _make_raw_df(T=220, n_pred=2, seed=99):
     """Synthetic df_raw: HVPI + n_pred predictor price-level series."""
@@ -345,7 +345,7 @@ def test_robustness_mom_positive_rmse():
     assert (rmse_col > 0).all(), f"All RMSE values must be positive:\n{rmse_col}"
 
 
-# --- compute_selection_by_regime (AP30) ---
+# --- compute_selection_by_regime ---
 
 def _make_selection_data():
     """Minimal synthetic dataset: PPI/ALQ/IP groups, 50 points."""
@@ -405,7 +405,7 @@ def test_selection_by_regime_freq_in_unit_interval():
     )
 
 
-# --- Sample extension / post-shock OOS (AP32) ---
+# --- Sample extension / post-shock OOS ---
 
 def _make_yoy_df(end="2025-08", early_end="2024-06", n_pred=3, seed=7):
     """Synthetic YoY DataFrame with an early-ending (binding) series."""

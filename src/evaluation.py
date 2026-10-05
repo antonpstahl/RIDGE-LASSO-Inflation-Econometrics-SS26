@@ -302,7 +302,7 @@ def compute_regime_analysis(oos_ctx, shock_end=None):
     - Shock       : OOS start - shock_end incl. (energy price shock, rising/peak)
     - Disinflation: shock_end + 1 month - OOS end (inflation decline towards 2 %)
 
-    Addresses G27: the central OOS statement rests on a single extreme regime.
+    Motivation: the central OOS statement rests on a single extreme regime.
     Checks whether model ranking and RMSE/RW flip depending on the regime.
 
     Parameters
@@ -827,7 +827,7 @@ def compute_giacomini_rossi(oos_ctx, adap_ctx=None, m=None):
     where d_t = e²_RW - e²_model (loss differential) and ĥ²_{t,m} is the Newey-West
     long-run variance of the d values in the rolling window [t-m+1, t].
 
-    Addresses G28: the pooled DM/CW test hides the time structure. GR tests
+    Motivation: the pooled DM/CW test hides the time structure. GR tests
     *conditional predictive ability* (Giacomini & White 2006) - whether/when the
     macro value-added varies over time and collapses in the shock regime.
 
@@ -1010,7 +1010,7 @@ def compute_stationarity_tests(df_raw, df_yoy):
     return {"df_stationarity": df_stat}
 
 
-# --- MoM robustness check (AP29) ---
+# --- MoM robustness check ---
 
 def _rmse_on(preds: pd.Series, actuals: pd.Series) -> float:
     """RMSE of preds vs. actuals on the common index (without NaN)."""
@@ -1020,9 +1020,9 @@ def _rmse_on(preds: pd.Series, actuals: pd.Series) -> float:
 
 
 def compute_robustness_mom(df_raw, test_months=TEST_MONTHS):
-    """Robustness check MoM specification (AP29): alternative target variable to YoY.
+    """Robustness check MoM specification: alternative target variable to YoY.
 
-    Tests G31 - whether the finding 'RW unbeatable' is an artefact of the YoY choice.
+    Tests whether the finding 'RW unbeatable' is an artefact of the YoY choice.
     Computes rolling-origin RMSE (h=1, fixed lambda from MoM CV) for:
       RW, Atkeson-Ohanian benchmark (2001), AR, Ridge, LASSO, LASSO+HICP.
 
@@ -1056,7 +1056,7 @@ def compute_robustness_mom(df_raw, test_months=TEST_MONTHS):
     Xtr_s = sc_m.transform(X_train_m)
 
     print("\n" + "=" * 65)
-    print("Robustness check: MoM specification (AP29 / G31)")
+    print("Robustness check: MoM specification")
     print("Target variable: HICP monthly rate (MoM, Δ%) instead of annual rate (YoY)")
     print(f"Training data: {len(y_train_m)} months  |  Test data: {len(y_test_m)} months")
     print(f"Test window: {y_test_m.index[0]:%Y-%m} - {y_test_m.index[-1]:%Y-%m}")
@@ -1194,7 +1194,7 @@ def compute_robustness_mom(df_raw, test_months=TEST_MONTHS):
     return {"df_robustness_mom": df_robustness_mom}
 
 
-# --- Economic interpretation of the selection (AP30) ---
+# --- Economic interpretation of the selection ---
 
 def _get_economic_group(col):
     """Maps a feature column (e.g. 'PPI_Gesamt_L1') to an economic group."""
@@ -1319,7 +1319,7 @@ def compute_selection_by_regime(X, y, train_end, lambda_lasso, shock_end=None):
     }
 
 
-# --- Sample extension: drop binding series + post-shock OOS (AP32 / G6) ---
+# --- Sample extension: drop binding series + post-shock OOS ---
 
 def _seg_rmse_on(pred_series, idx, y_ref):
     """RMSE of a forecast series on a time-index segment (without NaN)."""
@@ -1333,7 +1333,7 @@ def _seg_rmse_on(pred_series, idx, y_ref):
 def compute_robustness_extended_oos(df_yoy, drop_cols=("BS_Produktionserwart",),
                                     shock_end=None, test_months=TEST_MONTHS,
                                     tscv=None):
-    """Robustness run (AP32 / G6): sample extension + true post-shock OOS test.
+    """Robustness run: sample extension + true post-shock OOS test.
 
     Addresses the structural truncation of the main run: a single series
     (`BS_Produktionserwart`, ends 2024-09) caps the *entire* feature matrix
@@ -1405,7 +1405,7 @@ def compute_robustness_extended_oos(df_yoy, drop_cols=("BS_Produktionserwart",),
     splits = prepare_splits(X, y, train_end, ar_lags=AR_LAGS)
 
     print("\n" + "=" * 68)
-    print("Robustness check: sample extension (AP32 / G6)")
+    print("Robustness check: sample extension")
     print(f"Removed (binding) series: {', '.join(drop_cols) or '-'}")
     print(f"Target series until: {orig_end:%Y-%m} (before)  ->  {ext_end:%Y-%m} (after)"
           f"  [+{months_gained} months]")

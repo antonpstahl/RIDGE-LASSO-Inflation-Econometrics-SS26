@@ -1,4 +1,4 @@
-# Kernmethodik & Datenverarbeitung (gepinnt auf die getestete Umgebung, Python 3.13)
+# Core methods & data processing (pinned to the tested environment, Python 3.13)
 numpy==2.4.1
 pandas==3.0.2
 scikit-learn==1.8.0
@@ -10,11 +10,11 @@ requests==2.32.5
 nbformat==5.10.4
 jupyter>=1.0
 
-# Fortschrittsanzeige (Rolling-Origin)
+# Progress bars (rolling origin)
 tqdm>=4.0
 
 # Testing
 pytest>=8.0
 
-# Stationaritätstests (ADF/KPSS) und AR-Benchmark
+# Stationarity tests (ADF/KPSS) and AR benchmark
 statsmodels>=0.14.6

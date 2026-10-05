@@ -15,8 +15,8 @@ def transform_to_yoy(df):
 def transform_to_mom(df):
     """Transforms all columns into MoM change rates (%) - alternative to YoY.
 
-    Robustness specification (AP29): checks whether the finding 'RW unbeatable'
-    is an artefact of the YoY choice (G31 / Atkeson & Ohanian 2001).
+    Robustness specification: checks whether the finding 'RW unbeatable'
+    is an artefact of the YoY choice (cf. Atkeson & Ohanian 2001).
     """
     df_mom = df.pct_change(1) * 100
     return df_mom.replace([np.inf, -np.inf], np.nan)

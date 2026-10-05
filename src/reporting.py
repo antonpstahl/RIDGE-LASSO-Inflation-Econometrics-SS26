@@ -84,8 +84,12 @@ def fig_02b_heatmap(X, train_end):
         yticklabels=[c.replace("_L1", "") for c in pred_l1.columns],
     )
     ax.set_title("Correlation matrix of predictors (lag 1) - training set")
-    ax.tick_params(axis="x", rotation=45, labelsize=8)
-    ax.tick_params(axis="y", rotation=0,  labelsize=8)
+    ax.tick_params(axis="x", labelsize=8)
+    ax.tick_params(axis="y", rotation=0, labelsize=8)
+    plt.setp(
+        ax.get_xticklabels(),
+        rotation=45, ha="right", rotation_mode="anchor",
+    )
     plt.tight_layout()
     _save("fig_02b_korr_heatmap.png")
     plt.show()
@@ -544,7 +548,7 @@ def export_inference_table(df_inference, y_test=None):
         lambda r: f"[{r['CI 2.5%']:.3f}, {r['CI 97.5%']:.3f}]", axis=1
     )
     df_tex = df_tex.drop(columns=["CI 2.5%", "CI 97.5%"])
-    # Stat. column: either "Stat." (post AP22) or "DM-Stat" (backward compatibility)
+    # Stat. column: either "Stat." (DM/CW) or "DM-Stat" (backward compatibility)
     stat_col = "Stat." if "Stat." in df_tex.columns else "DM-Stat"
     has_test_col = "Test" in df_tex.columns
     has_bonf_col = "p adj. (Bonf.)" in df_tex.columns
@@ -612,7 +616,7 @@ def export_sources_table():
     for name, nace in PROD_SECTORS.items():
         rows.append({"Variable": name, "Source": "Eurostat",
                      "Dataset": "sts_inpr_m",
-                     "Code / Filter": f"nace_r2={nace}, unit=I15, geo=DE",
+                     "Code / Filter": f"nace_r2={nace}, unit=I21, geo=DE",
                      "Freq.": "M", "SA": "NSA"})
     for name, indic in BS_INDICATORS.items():
         rows.append({"Variable": name, "Source": "Eurostat",
@@ -622,7 +626,7 @@ def export_sources_table():
     for name, nace in PPI_SECTORS.items():
         rows.append({"Variable": name, "Source": "Eurostat",
                      "Dataset": "sts_inppd_m",
-                     "Code / Filter": f"nace_r2={nace}, unit=I15, geo=DE",
+                     "Code / Filter": f"nace_r2={nace}, unit=I21, geo=DE",
                      "Freq.": "M", "SA": "NSA"})
     for name, grp in UNEMP_GROUPS.items():
         rows.append({"Variable": name, "Source": "Eurostat",
@@ -654,7 +658,7 @@ def export_sources_table():
 
 
 def export_robustness_table(df_robustness_mom):
-    """Export MoM robustness table (AP29) to results/robustness_mom_table.{csv,tex}."""
+    """Export MoM robustness table to results/robustness_mom_table.{csv,tex}."""
     df_robustness_mom.to_csv("results/robustness_mom_table.csv")
     print("results/robustness_mom_table.csv saved.")
 
@@ -667,7 +671,7 @@ def export_robustness_table(df_robustness_mom):
         float_format="%.4f",
         escape=False,
         caption=(
-            r"Robustness check MoM specification (AP29): rolling-origin RMSE "
+            r"Robustness check MoM specification: rolling-origin RMSE "
             r"($h=1$, fixed $\lambda$) for the HICP monthly rate (Δ\,\%) "
             r"instead of the annual rate (YoY). "
             r"AO: Atkeson-Ohanian benchmark - rolling 12-month mean "
@@ -689,7 +693,7 @@ def export_robustness_table(df_robustness_mom):
 
 
 def export_robustness_extended_table(ext_ctx):
-    """Export sample-extension robustness (AP32) to results/robustness_extended.{csv,tex}."""
+    """Export sample-extension robustness to results/robustness_extended.{csv,tex}."""
     df  = ext_ctx["df_robustness_extended"]
     df.to_csv("results/robustness_extended.csv")
     print("results/robustness_extended.csv saved.")
@@ -712,7 +716,7 @@ def export_robustness_extended_table(ext_ctx):
         escape=False,
         na_rep="-",
         caption=(
-            r"Sample-extension robustness (AP32): rolling-origin RMSE ($h=1$, "
+            r"Sample-extension robustness: rolling-origin RMSE ($h=1$, "
             r"fixed $\lambda$) after removing the binding series \texttt{"
             + dropped.replace("_", r"\_") + r"}. The OOS window extends from "
             + ext_ctx["orig_end"].strftime("%Y-%m") + r" to "
@@ -849,7 +853,7 @@ def export_regime_table(df_regime, shock_end="2023-03", n_shock=None, n_disfl=No
     print(df_regime.to_string())
 
 
-# --- Selection interpretation (AP30) ---
+# --- Selection interpretation ---
 
 def export_selection_economic(sel_regime_ctx):
     """Export regime-dependent selection frequency per economic group."""
@@ -936,33 +940,41 @@ def update_readmes(ctx):
     r2_ridge_test     = ctx["r2_ridge_test"]
     r2_ols_test       = ctx["r2_ols_test"]
 
-    # DM significance markers from df_inference (if present)
+    # DM/CW significance markers from df_inference (if present). For DM, a
+    # significant negative statistic means the RW is the more accurate forecast.
     df_inf = ctx.get("df_inference")
-    def _sig(model_name):
+    def _sig(model_name, lang="en"):
         if df_inf is None or model_name not in df_inf.index:
             return ""
-        s = df_inf.loc[model_name, "Sig."]
-        return f" {s}" if s not in ("-", "–", "") else ""
+        row = df_inf.loc[model_name]
+        s = row["Sig."]
+        if s in ("-", "–", ""):
+            return ""
+        stat = row.get("Stat.", row.get("DM-Stat", np.nan))
+        if s in ("*", "**") and row.get("Test", "DM") == "DM" and stat < 0:
+            s += " (RW besser)" if lang == "de" else " (RW better)"
+        return f" {s}"
 
     block_de = (
         f"Datensatz: **{_n_total} Beobachtungen** ({_d0} - {_d1}), "
         f"davon **{_n_train} Training / {TEST_MONTHS} Test**\n"
         f"(Testfenster {_t0} - {_t1}), **{_n_feat} Features**.\n\n"
         f"**Testfenster (fester chronologischer Split), RMSE in Prozentpunkten der Inflationsrate.**\n"
-        f"Test = DM (nicht-geschachtelt) oder CW (geschachtelt, Clark & West 2007). n.s. = nicht signifikant.\n\n"
+        f"Test = DM (nicht-geschachtelt, zweiseitig) oder CW (geschachtelt, Clark & West 2007, einseitig). "
+        f"\\* p<0,10, \\*\\* p<0,05 (unkorrigiert), n.s. = nicht signifikant.\n\n"
         f"| Modell | λ | Test-RMSE | RMSE/RW | Test-R² | Test | Koeff. ≠ 0 |\n"
         f"|--------|----------:|----------:|--------:|--------:|-----:|-----------:|\n"
         f"| *- Benchmark -* | | | | | | |\n"
         f"| **Random Walk** | - | **{_rw:.2f}** | **1.00** | {r2_rw_test:.2f} | - | - |\n"
-        f"| Lag-Modell (AR) | - | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag model (AR)') or 'n.s.'} | {len(AR_LAGS)} |\n"
+        f"| Lag-Modell (AR) | - | {_ar:.2f} | {_ar/_rw:.2f} | {r2_ar_test:.2f} | CW {_sig('Lag model (AR)', 'de') or 'n.s.'} | {len(AR_LAGS)} |\n"
         f"| *- Zentraler Vergleich: Eigen-Lags + Makro (ökonomisch sauber, ceteris paribus) -* | | | | | | |\n"
-        f"| LASSO + HVPI-Lags | {lasso_plus_alpha:.3f} | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
+        f"| LASSO + HVPI-Lags | {lasso_plus_alpha:.3f} | {_lp:.2f} | {_lp/_rw:.2f} | {r2_lasso_plus:.2f} | CW {_sig('LASSO+HVPI', 'de') or 'n.s.'} | {n_nonzero_plus} / {_n_plus} |\n"
         f"| *- Didaktisch: nur Makro, ohne Eigen-Lags (strukturell benachteiligt) -* | | | | | | |\n"
-        f"| Adaptive LASSO | {lambda_alasso:.5f} | {_alasso:.2f} | {_alasso/_rw:.2f} | {r2_alasso_test:.2f} | DM {_sig('Adaptive LASSO') or 'n.s.'} | {n_nonzero_alasso} / {_n_feat} |\n"
-        f"| LASSO | {lambda_lasso:.3f} | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | DM {_sig('LASSO') or 'n.s.'} | {_nz_l} / {_n_feat} |\n"
-        f"| Elastic Net | {lambda_enet:.3f} | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
-        f"| Ridge | {lambda_ridge:.1f} | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
-        f"| OLS | - | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
+        f"| Adaptive LASSO | {lambda_alasso:.5f} | {_alasso:.2f} | {_alasso/_rw:.2f} | {r2_alasso_test:.2f} | DM {_sig('Adaptive LASSO', 'de') or 'n.s.'} | {n_nonzero_alasso} / {_n_feat} |\n"
+        f"| LASSO | {lambda_lasso:.3f} | {_las:.2f} | {_las/_rw:.2f} | {r2_lasso_test:.2f} | DM {_sig('LASSO', 'de') or 'n.s.'} | {_nz_l} / {_n_feat} |\n"
+        f"| Elastic Net | {lambda_enet:.3f} | {_en:.2f} | {_en/_rw:.2f} | {r2_enet_test:.2f} | DM {_sig('Elastic Net', 'de') or 'n.s.'} | {n_nonzero_enet} / {_n_feat} |\n"
+        f"| Ridge | {lambda_ridge:.1f} | {_ri:.2f} | {_ri/_rw:.2f} | {r2_ridge_test:.2f} | DM {_sig('Ridge', 'de') or 'n.s.'} | {_n_feat} / {_n_feat} |\n"
+        f"| OLS | - | {_ols:.2f} | {_ols/_rw:.2f} | {_neg(r2_ols_test)} | DM {_sig('OLS', 'de') or 'n.s.'} | {_n_feat} / {_n_feat} |\n\n"
         f"**Zentraler Befund:** Lag-Modell (AR, nur Eigen-Lags) RMSE/RW = {_ar/_rw:.2f} und "
         f"LASSO+HVPI (Eigen-Lags + Makro) RMSE/RW = {_lp/_rw:.2f}, also "
         f"Makro-Mehrwert über die Persistenz hinaus etwa 0 (ceteris paribus).\n"
@@ -972,7 +984,7 @@ def update_readmes(ctx):
         f"ist aber **kein fairer Vergleich gegen den RW**.\n\n"
         f"Inferenztests (T={TEST_MONTHS}): DM = Diebold-Mariano (HLN-korr., zweiseitig) für reine Makro-Modelle. "
         f"CW = Clark-West (2007, einseitig) für Lag-Modell und LASSO+HVPI (geschachtelt in RW). "
-        f"Kein Modell schlägt den RW signifikant (geringe Power bei T={TEST_MONTHS}). Block-Bootstrap-KI: `results/inference_table.csv`.\n"
+        f"Nach Bonferroni-Korrektur schlägt kein Modell den RW signifikant (geringe Power bei T={TEST_MONTHS}). Block-Bootstrap-KI: `results/inference_table.csv`.\n"
         f"*Hinweis: Der RW-R² spiegelt die Persistenz der YoY-Rate wider (ŷ_t = y_{{t-1}} erklärt die "
         f"Autokorrelation). Er ist nicht mit dem Modell-R² gleichzusetzen.*\n\n"
         f"**Robustheitscheck (Rolling-Origin, Expanding Window):** "
@@ -989,7 +1001,8 @@ def update_readmes(ctx):
         f"of which **{_n_train} training / {TEST_MONTHS} test**\n"
         f"(test window {_t0} - {_t1}), **{_n_feat} features**.\n\n"
         f"**Test window (fixed chronological split), RMSE in percentage points of the inflation rate.**\n"
-        f"Test = DM (non-nested) or CW (nested, Clark & West 2007), n.s. = not significant.\n\n"
+        f"Test = DM (non-nested, two-sided) or CW (nested, Clark & West 2007, one-sided). "
+        f"\\* p<0.10, \\*\\* p<0.05 (unadjusted), n.s. = not significant.\n\n"
         f"| Model | λ | Test RMSE | RMSE/RW | Test R² | Test | Coeff. ≠ 0 |\n"
         f"|-------|----------:|----------:|--------:|--------:|-----:|-----------:|\n"
         f"| *- Benchmark -* | | | | | | |\n"
@@ -1011,7 +1024,7 @@ def update_readmes(ctx):
         f"illustrates regularization vs. OLS overfitting but is **not a fair race against the RW**.\n\n"
         f"Inference tests (T={TEST_MONTHS}): DM = Diebold-Mariano (HLN-corrected, two-sided) for pure macro models, "
         f"CW = Clark-West (2007, one-sided) for lag model and LASSO+HICP (nested within RW). "
-        f"No model beats the RW significantly (low power at T={TEST_MONTHS}). Block-bootstrap CIs: `results/inference_table.csv`.\n"
+        f"After Bonferroni correction no model beats the RW significantly (low power at T={TEST_MONTHS}). Block-bootstrap CIs: `results/inference_table.csv`.\n"
         f"*Note: The RW R² reflects the persistence (autocorrelation) of the YoY series "
         f"(ŷ_t = y_{{t-1}}), it is not comparable to the model R².*\n\n"
         f"**Robustness check (rolling-origin, expanding window):** "
@@ -1023,7 +1036,7 @@ def update_readmes(ctx):
         f"(Clark-West test n.s.)."
     )
 
-    # --- Sample-extension robustness (AP32) - optional additional paragraph ---
+    # --- Sample-extension robustness - optional additional paragraph ---
     if ext:
         df_e   = ext["df_robustness_extended"]
         non_rw = df_e.drop("RW", errors="ignore")
@@ -1034,23 +1047,31 @@ def update_readmes(ctx):
         sig_win = non_rw[(non_rw["Stat Post"] > 0) & (non_rw["Sig Post"].isin(["*", "**"]))]
         drop_str = ", ".join(ext["dropped"]) or "-"
 
+        best_en  = best_p.replace("HVPI", "HICP")
+
         if len(sig_win) > 0:
-            verdict_de = (f"schlagen **{', '.join(sig_win.index)}** den RW signifikant "
-                          f"(DM/CW p<0,10, bestes {best_p}, RMSE/RW={val_p:.2f})")
-            verdict_en = (f"**{', '.join(sig_win.index)}** beat the RW significantly "
-                          f"(DM/CW p<0.10, best {best_p}, RMSE/RW={val_p:.2f})")
+            adj_holds = ("Sig Post adj." in sig_win.columns
+                         and sig_win["Sig Post adj."].isin(["*", "**"]).any())
+            adj_de = "" if adj_holds else ", nach Bonferroni-Korrektur n.s."
+            adj_en = "" if adj_holds else ", n.s. after Bonferroni correction"
+            names_de = ", ".join(sig_win.index)
+            names_en = names_de.replace("HVPI", "HICP")
+            verdict_de = (f"schlagen **{names_de}** den RW signifikant "
+                          f"(DM/CW p<0,10 unkorrigiert{adj_de}; bestes Modell {best_p}, RMSE/RW={val_p:.2f})")
+            verdict_en = (f"**{names_en}** beat the RW significantly "
+                          f"(DM/CW p<0.10 unadjusted{adj_en}; best model {best_en}, RMSE/RW={val_p:.2f})")
         elif val_p < 1.0:
             verdict_de = (f"unterbietet das beste Modell ({best_p}) den RW in der "
                           f"Punktschätzung (RMSE/RW={val_p:.2f}), aber **nicht signifikant** (DM/CW n.s.)")
-            verdict_en = (f"the best model ({best_p}) edges below the RW in point terms "
+            verdict_en = (f"the best model ({best_en}) edges below the RW in point terms "
                           f"(RMSE/RW={val_p:.2f}), but **not significantly** (DM/CW n.s.)")
         else:
             verdict_de = (f"schlägt **weiterhin kein Modell** den RW (bestes {best_p}, "
                           f"RMSE/RW={val_p:.2f})")
-            verdict_en = (f"**still no model** beats the RW (best {best_p}, RMSE/RW={val_p:.2f})")
+            verdict_en = (f"**still no model** beats the RW (best {best_en}, RMSE/RW={val_p:.2f})")
 
         ext_de = (
-            f"\n\n**Robustheit Sample-Verlängerung (AP32):** Entfernt man die einzige "
+            f"\n\n**Robustheit Sample-Verlängerung:** Entfernt man die einzige "
             f"bindende Reihe (`{drop_str}`, endet 2024-09), reicht das OOS-Fenster bis "
             f"**{post1}** (+{ext['months_gained']} Monate, Post-Schock-Segment "
             f"{post0}-{post1}, n={ext['n_post']}, vorher 14). Im ruhigeren Post-Schock-"
@@ -1059,7 +1080,7 @@ def update_readmes(ctx):
             f"Tabelle: `results/robustness_extended.csv`."
         )
         ext_en = (
-            f"\n\n**Sample-extension robustness (AP32):** Dropping the single binding "
+            f"\n\n**Sample-extension robustness:** Dropping the single binding "
             f"series (`{drop_str}`, ends 2024-09) extends the OOS window to **{post1}** "
             f"(+{ext['months_gained']} months, post-shock segment {post0}-{post1}, "
             f"n={ext['n_post']}, was 14). In the calmer post-shock regime {verdict_en}. "

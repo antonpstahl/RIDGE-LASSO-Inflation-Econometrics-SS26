@@ -20,7 +20,7 @@ AR_LAGS     = [1, 2, 3, 6, 12]
 TEST_MONTHS = 36
 HORIZONS    = [1, 3, 6, 12]
 
-# --- Regime analysis (AP25) ---
+# --- Regime analysis ---
 # Energy price shock peak: 2022-10 (HICP YoY = 11.6 %). Easing from 2023-04.
 # Shock regime up to and including 2023-03, disinflation phase from 2023-04.
 REGIME_SHOCK_END = "2023-03"
